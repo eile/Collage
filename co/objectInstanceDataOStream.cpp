@@ -94,6 +94,7 @@ void ObjectInstanceDataOStream::push( const Nodes& receivers,
     _clearConnections();
 }
 
+
 void ObjectInstanceDataOStream::sync( const MasterCMCommand& command )
 {
     NodePtr node = command.getNode();
@@ -103,6 +104,25 @@ void ObjectInstanceDataOStream::sync( const MasterCMCommand& command )
     _instanceID = command.getRequestID(); // ugh
     _setupConnections( Nodes( 1, node ));
     _resend();
+    _clearConnections();
+}
+
+void ObjectInstanceDataOStream::pushMap( const Nodes& receivers,
+                                         const uint128_t& objectID,
+                                         const uint128_t& groupID,
+                                         const uint128_t& typeID,
+                                         const uint128_t& version,
+                                         const uint32_t instanceID,
+                                         const Object::ChangeType changeType )
+{
+    _command = CMD_NODE_OBJECT_INSTANCE_PUSH;
+    _nodeID = 0;
+    _instanceID = EQ_INSTANCE_NONE;
+    _setupConnections( receivers );
+
+    _resend();
+    OCommand( getConnections(), CMD_NODE_OBJECT_PUSH_MAP )
+        << objectID << groupID << typeID << version << instanceID << changeType;
     _clearConnections();
 }
 

@@ -250,7 +250,7 @@ private:
     int32_t  _mtu;
     int32_t  _ackFreq;
     uint32_t _payloadSize;
-    int32_t  _timeouts;
+        uint32_t  _timeouts;
 
     typedef lunchbox::RefPtr< EventConnection > EventConnectionPtr;
     EventConnectionPtr _event;
@@ -295,7 +295,7 @@ private:
     typedef std::deque< Nack > RepeatQueue;
     RepeatQueue _repeatQueue; //!< nacks to repeat
 
-    const unsigned _writeTimeOut;
+        const uint32_t _maxTimeouts;
 
     void _close();
     uint16_t _buildNewID();

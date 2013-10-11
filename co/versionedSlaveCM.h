@@ -67,7 +67,10 @@ namespace co
 
         void applyMapData( const uint128_t& version ) override;
         void addInstanceDatas( const ObjectDataIStreamDeque&,
-                                       const uint128_t& startVersion ) override;
+                               const uint128_t& startVersion ) override;
+        void setVersion( const uint128_t& version ) override
+            { _version = version; }
+
     private:
         /** The current version. */
         uint128_t _version;

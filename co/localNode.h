@@ -255,6 +255,12 @@ public:
                                NodePtr master,
                                const uint128_t& version = VERSION_OLDEST );
 
+        /** completes client side object mapping */
+        CO_API bool completePushMap( Object* object, const UUID& id,
+                                   const uint128_t& version,
+                                   const uint32_t masterInstanceID,
+                                   const uint32_t changeType, NodePtr master );
+
     /** Convenience wrapper for mapObject(). @version 1.0 */
     f_bool_t mapObject( Object* object, const ObjectVersion& v )
         { return mapObject( object, v.identifier, 0, v.version ); }
@@ -359,6 +365,15 @@ public:
                                     const uint128_t& objectType,
                                     const UUID& objectID,
                                     DataIStream& istream );
+
+        CO_API virtual void objectPushMap( const uint128_t& groupID,
+                                        const uint128_t& objectType,
+                                        const uint128_t& objectID,
+                                        DataIStream& istream,
+                                        const uint128_t& version,
+                                        const uint32_t masterInstanceID,
+                                        const uint32_t changeType,
+                                        NodePtr master );
 
     /** Function signature for push handlers. @version 1.0 */
     typedef boost::function< void( const uint128_t&, //!< groupID

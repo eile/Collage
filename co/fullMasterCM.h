@@ -46,6 +46,8 @@ namespace co
         void push( const uint128_t& groupID, const uint128_t& typeID,
                    const Nodes& nodes ) override;
         void sendSync( const MasterCMCommand& command ) override;
+        void pushMap( const uint128_t& groupID, const uint128_t& typeID,
+                      const Nodes& nodes ) override;
 
         /** @name Versioning */
         //@{

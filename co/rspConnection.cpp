@@ -34,13 +34,11 @@
 
 //#define CO_INSTRUMENT_RSP
 #define CO_RSP_MERGE_WRITES
-#define CO_RSP_MAX_TIMEOUTS 1000
 #ifdef _WIN32
 #  define CO_RSP_DEFAULT_PORT (4242)
 #else
 #  define CO_RSP_DEFAULT_PORT ( (getuid() % 64511) + 1024 )
 #endif
-
 
 // Note: Do not use version > 255, endianness detection magic relies on this.
 const uint16_t CO_RSP_PROTOCOL_VERSION = 0;
@@ -97,8 +95,8 @@ RSPConnection::RSPConnection()
     , _readBuffer( 0 )
     , _readBufferPos( 0 )
     , _sequence( 0 )
-    // ensure we have a handleConnectedTimeout before the write pop
-    , _writeTimeOut( Global::IATTR_RSP_ACK_TIMEOUT * CO_RSP_MAX_TIMEOUTS * 2 )
+    , _maxTimeouts( Global::getTimeout() /
+                    Global::getIAttribute( Global::IATTR_RSP_ACK_TIMEOUT ) )
 {
     _buildNewID();
     ConnectionDescriptionPtr description = _getDescription();
@@ -485,7 +483,7 @@ void RSPConnection::_handleConnectedTimeout()
 
     _processOutgoing();
 
-    if( _timeouts >= CO_RSP_MAX_TIMEOUTS )
+    if( _timeouts >= _maxTimeouts )
     {
         LBERROR << "Too many timeouts during send: " << _timeouts << std::endl;
         bool all = true;
@@ -503,7 +501,8 @@ void RSPConnection::_handleConnectedTimeout()
         // exit else close all failed child connections
         if ( all )
         {
-            _sendSimpleDatagram( ID_EXIT, _id );
+            LBWARN << "closing all child connections" << std::endl;
+            _sendSimpleDatagram( ID_EXIT, _id, 0 );
             _appBuffers.pushFront( 0 ); // unlock write function
 
             for( RSPConnectionsCIter i =_children.begin();
@@ -525,7 +524,9 @@ void RSPConnection::_handleConnectedTimeout()
             RSPConnectionPtr child = *i;
             if ( child->_acked < _sequence - 1 && _id != child->_id )
             {
-                _sendSimpleDatagram( ID_EXIT, child->_id );
+                LBWARN << "removing child connection " << child->_id
+                       << std::endl;
+                _sendSimpleDatagram( ID_EXIT, child->_id, 0 );
                 _removeConnection( child->_id );
             }
             else
@@ -641,7 +642,7 @@ void RSPConnection::_processOutgoing()
     // (repeat) ack request
     _clock.reset();
     ++_timeouts;
-    if ( _timeouts < CO_RSP_MAX_TIMEOUTS )
+    if ( _timeouts < _maxTimeouts )
         _sendAckRequest();
     _setTimeout( timeout );
 }
@@ -941,7 +942,9 @@ void RSPConnection::_handleAcceptIDData( const size_t bytes )
             break;
 
         default:
-            LBUNIMPLEMENTED;
+            LBERROR << "error: received datagram type " << node.type
+                << " from " << node.connectionID
+                << " while in handleAcceptIDData" << std::endl;
             break;
     }
 }
@@ -982,7 +985,9 @@ void RSPConnection::_handleInitData( const size_t bytes, const bool connected )
             return;
 
         default:
-            LBUNIMPLEMENTED;
+            LBERROR << "error: received datagram type " << node.type
+                    << " from " << node.connectionID
+                    << " while in handleInitData" << std::endl;
             break;
     }
 }
@@ -1226,7 +1231,8 @@ bool RSPConnection::_handleAck( const size_t bytes )
     RSPConnectionPtr connection = _findConnection( ack.readerID );
     if( !connection )
     {
-        LBUNREACHABLE;
+        LBWARN << "received ack from unknown connection " << ack.readerID
+            << " - connection recently timed out?" << std::endl;
         return false;
     }
 
@@ -1290,7 +1296,8 @@ bool RSPConnection::_handleNack( const size_t bytes )
     RSPConnectionPtr connection = _findConnection( nack.readerID );
     if( !connection )
     {
-        LBUNREACHABLE;
+        LBWARN << "received nack from unknown connection " << nack.readerID
+            << " - connection recently timed out?" << std::endl;
         return false;
         // it's an unknown connection, TODO add this connection?
     }
@@ -1383,7 +1390,8 @@ bool RSPConnection::_handleAckRequest( const size_t bytes )
     RSPConnectionPtr connection = _findConnection( writerID );
     if( !connection )
     {
-        LBUNREACHABLE;
+        LBWARN << "received ackrequest from unknown connection " << writerID
+            << " - connection recently timed out?" << std::endl;
         return false;
     }
 
@@ -1577,7 +1585,10 @@ int64_t RSPConnection::write( const void* inData, const uint64_t bytes )
             _postWakeup();
 
         Buffer* buffer;
-        if ( !_appBuffers.timedPop( _writeTimeOut, buffer ) )
+        //ensure timeout occurs after handleConnectedTimeout
+        const unsigned timeout = Global::getTimeout() == LB_TIMEOUT_INDEFINITE ?
+                            LB_TIMEOUT_INDEFINITE : Global::getTimeout() + 1000;
+        if ( !_appBuffers.timedPop( timeout, buffer ) )
         {
             LBERROR << "Timeout while writing" << std::endl;
             buffer = 0;
