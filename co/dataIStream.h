@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2012, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
  *               2009-2010, Cedric Stalder <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -45,11 +45,23 @@ public:
     /** @internal @return the number of remaining buffers. */
     virtual size_t nRemainingBuffers() const = 0;
 
-    virtual uint128_t getVersion() const = 0; //!< @internal
     virtual void reset() { _reset(); } //!< @internal
     void setSwapping( const bool onOff ); //!< @internal enable endian swap
     CO_API bool isSwapping() const; //!< @internal
     DataIStream& operator = ( const DataIStream& rhs ); //!< @internal
+    //@}
+
+
+    /** @name Data access */
+    //@{
+    /** @return the provider of the istream. */
+    CO_API virtual NodePtr getRemoteNode() const = 0;
+
+    /** @return the receiver of the istream. */
+    CO_API virtual LocalNodePtr getLocalNode() const = 0;
+
+    /** @return the version of the data contained in this stream. */
+    virtual uint128_t getVersion() const = 0;
     //@}
 
     /** @name Data input */
@@ -141,12 +153,6 @@ public:
 
     /** @return true if not all data has been read. @version 1.0 */
     bool hasData() { return _checkBuffer(); }
-
-    /** @return the provider of the istream. */
-    CO_API virtual NodePtr getRemoteNode() const = 0;
-
-    /** @return the receiver of the istream. */
-    CO_API virtual LocalNodePtr getLocalNode() const = 0;
     //@}
 
 protected:

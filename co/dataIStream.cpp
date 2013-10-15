@@ -103,8 +103,8 @@ void DataIStream::_read( void* data, uint64_t size )
 {
     if( !_checkBuffer( ))
     {
-        LBUNREACHABLE;
         LBERROR << "No more input data" << std::endl;
+        LBUNREACHABLE;
         return;
     }
 

@@ -1051,7 +1051,6 @@ bool ObjectStore::_cmdSyncObject( ICommand& cmd )
     LB_TS_THREAD( _commandThread );
     MasterCMCommand command( cmd );
     const uint128_t& id = command.getObjectID();
-    LBINFO << command.getNode() << std::endl;
 
     LBLOG( LOG_OBJECTS ) << "Cmd sync object id " << id << "."
                          << command.getInstanceID() << " req "

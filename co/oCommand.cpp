@@ -152,6 +152,11 @@ void OCommand::_init( const uint32_t cmd, const uint32_t type )
     *this << 0ull /* size */ << type << cmd;
 }
 
+uint128_t OCommand::getVersion() const
+{
+    return VERSION_NONE;
+}
+
 void OCommand::sendData( const void* buffer, const uint64_t size,
                          const bool last )
 {

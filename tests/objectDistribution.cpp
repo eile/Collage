@@ -38,8 +38,9 @@ namespace
 
 lunchbox::Monitor< co::Object::ChangeType > monitor( co::Object::NONE );
 
-static const std::string message =
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut eget felis sed leo tincidunt dictum eu eu felis. Aenean aliquam augue nec elit tristique tempus. Pellentesque dignissim adipiscing tellus, ut porttitor nisl lacinia vel. Donec malesuada lobortis velit, nec lobortis metus consequat ac. Ut dictum rutrum dui. Pellentesque quis risus at lectus bibendum laoreet. Suspendisse tristique urna quis urna faucibus et auctor risus ultricies. Morbi vitae mi vitae nisi adipiscing ultricies ac in nulla. Nam mattis venenatis nulla, non posuere felis tempus eget. Cras dapibus ultrices arcu vel dapibus. Nam hendrerit lacinia consectetur. Donec ullamcorper nibh nisl, id aliquam nisl. Nunc at tortor a lacus tincidunt gravida vitae nec risus. Suspendisse potenti. Fusce tristique dapibus ipsum, sit amet posuere turpis fermentum nec. Nam nec ante dolor.";
+static const std::string message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut eget felis sed leo tincidunt dictum eu eu felis. Aenean aliquam augue nec elit tristique tempus. Pellentesque dignissim adipiscing tellus, ut porttitor nisl lacinia vel. Donec malesuada lobortis velit, nec lobortis metus consequat ac. Ut dictum rutrum dui. Pellentesque quis risus at lectus bibendum laoreet. Suspendisse tristique urna quis urna faucibus et auctor risus ultricies. Morbi vitae mi vitae nisi adipiscing ultricies ac in nulla. Nam mattis venenatis nulla, non posuere felis tempus eget. Cras dapibus ultrices arcu vel dapibus. Nam hendrerit lacinia consectetur. Donec ullamcorper nibh nisl, id aliquam nisl. Nunc at tortor a lacus tincidunt gravida vitae nec risus. Suspendisse potenti. Fusce tristique dapibus ipsum, sit amet posuere turpis fermentum nec. Nam nec ante dolor.";
+
+static const std::string commitMessage = "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?";
 }
 
 class Object : public co::Object
@@ -48,23 +49,31 @@ public:
     Object( const ChangeType type ) : nSync( 0 ), _type( type ) {}
     Object( const ChangeType type, co::DataIStream& is )
         : nSync( 0 ), _type( type )
-    { applyInstanceData( is ); }
+    {
+        applyInstanceData( is );
+    }
 
     size_t nSync;
 
 protected:
     virtual ChangeType getChangeType() const { return _type; }
     virtual void getInstanceData( co::DataOStream& os )
-        { os << message << _type; }
+    {
+        os << ( os.getVersion() <= co::VERSION_FIRST ? message : commitMessage )
+           << _type;
+    }
 
     virtual void applyInstanceData( co::DataIStream& is )
     {
         std::string msg;
-        ChangeType type;
+        ChangeType type( co::Object::NONE );
         is >> msg >> type;
-        TEST( message == msg );
-        TEST( _type == type );
         ++nSync;
+
+        TESTINFO( ( is.getVersion() <= co::VERSION_FIRST && msg == message ) ||
+                  msg == commitMessage,
+                  is.getVersion() << ": " << msg.substr( 0, 10 ));
+        TESTINFO( _type == type, _type << " != " << int( type ));
     }
 
 private:
@@ -136,18 +145,31 @@ int main( int argc, char **argv )
         Object object( type );
         TEST( client->registerObject( &object ));
         object.push( co::uint128_t(42), co::uint128_t(i), nodes );
-
         monitor.waitEQ( type );
+
         TEST( server->mapObject( server->object, object.getID(),
                                  co::VERSION_NONE ));
         TEST( object.nSync == 0 );
         TEST( server->object->nSync == 1 );
-
         TESTINFO( client->syncObject( server->object, serverProxy,
                                       object.getID( )),
                   "type " << type );
         TEST( object.nSync == 0 );
         TEST( server->object->nSync == 2 );
+
+        if( type != co::Object::STATIC ) // no commits for static objects
+        {
+            object.commit();
+            object.commit();
+            server->object->sync( co::VERSION_FIRST + 2 );
+
+            TESTINFO( server->object->getVersion() == co::VERSION_FIRST + 2,
+                      server->object->getVersion( ));
+            TESTINFO( object.getVersion() == co::VERSION_FIRST + 2,
+                      object.getVersion( ));
+            TEST( object.nSync == 2 );
+            TEST( server->object->nSync == 2 );
+        }
 
         server->unmapObject( server->object );
         delete server->object;

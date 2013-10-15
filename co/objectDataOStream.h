@@ -39,7 +39,7 @@ namespace co
         virtual void enableCommit( const uint128_t& version,
                                    const Nodes& receivers );
 
-        uint128_t getVersion() const { return _version; }
+        uint128_t getVersion() const override { return _version; }
 
     protected:
         ObjectDataOCommand send( const uint32_t cmd, const uint32_t type,

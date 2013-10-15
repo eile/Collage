@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2012, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder  <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -52,7 +52,7 @@ void ObjectSlaveDataOStream::sendData( const void* buffer, const uint64_t size,
                              last ) << _commit;
 
     if( last )
-        _commit = UUID( true /* generate */ );
+        _commit = UUID( true /* generate new commit ID */ );
 }
 
 }

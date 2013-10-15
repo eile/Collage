@@ -51,6 +51,8 @@ protected:
                                 co::COMMANDTYPE_OBJECT, co::UUID(), 0,
                                 co::uint128_t(), 0, size, last, this );
     }
+
+    co::uint128_t getVersion() const override { return co::VERSION_NONE; }
 };
 
 class DataIStream : public co::DataIStream
@@ -66,7 +68,7 @@ public:
     }
 
     size_t nRemainingBuffers() const override { return _commands.getSize(); }
-    lunchbox::uint128_t getVersion() const override { return co::VERSION_NONE; }
+    co::uint128_t getVersion() const override { return co::VERSION_NONE; }
     co::NodePtr getRemoteNode() const override { return 0; }
     co::LocalNodePtr getLocalNode() const override { return 0; }
 

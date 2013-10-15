@@ -90,6 +90,11 @@ private:
     detail::OCommand* const _impl;
 
     void _init( const uint32_t cmd, const uint32_t type );
+
+    /** @internal @name DataIStream functions */
+    //@{
+    CO_API uint128_t getVersion() const override;
+    //@}
 };
 }
 

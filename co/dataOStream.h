@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2012, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -37,157 +37,163 @@ namespace co
 namespace detail { class DataOStream; }
 namespace DataStreamTest { class Sender; }
 
-    /**
-     * A std::ostream-like interface for object serialization.
+/**
+ * A std::ostream-like interface for object serialization.
+ *
+ * Implements buffering, retaining and compressing data in a binary format.
+ * Derived classes send the data using the appropriate commands.
+ */
+class DataOStream : public lunchbox::NonCopyable
+{
+public:
+    /** @name Internal */
+    //@{
+    /** @internal Disable and flush the output to the current receivers. */
+    CO_API void disable();
+
+    /** @internal Enable copying of all data into a saved buffer. */
+    void enableSave();
+
+    /** @internal Disable copying of all data into a saved buffer. */
+    void disableSave();
+
+    /** @internal @return if data was sent since the last enable() */
+    CO_API bool hasSentData() const;
+
+    /** @internal */
+    CO_API const Connections& getConnections() const;
+
+    /** @internal Stream the data header (compressor, nChunks). */
+    DataOStream& streamDataHeader( DataOStream& os );
+
+    /** @internal Send the (compressed) data using the given connection. */
+    void sendBody( ConnectionPtr connection, const uint64_t dataSize );
+
+    /** @internal @return the compressed data size, 0 if uncompressed.*/
+    uint64_t getCompressedDataSize() const;
+    //@}
+
+    /** @name Data access */
+    //@{
+    /** @return the version of the data contained in this stream. */
+    virtual uint128_t getVersion() const = 0;
+    //@}
+
+    /** @name Data output */
+    //@{
+    /** Write a plain data item by copying it to the stream. @version 1.0 */
+    template< class T > DataOStream& operator << ( const T& value )
+        { _write( &value, sizeof( value )); return *this; }
+
+    /** Write a C array. @version 1.0 */
+    template< class T > DataOStream& operator << ( Array< T > array )
+        { _write( array.data, array.getNumBytes( )); return *this; }
+
+    /** Write a lunchbox::Buffer. @version 1.0 */
+    template< class T >
+    DataOStream& operator << ( const lunchbox::Buffer< T >& buffer );
+
+    /** Transmit a request identifier. @version 1.1.1 */
+    template< class T >
+    DataOStream& operator << ( const lunchbox::RequestFuture<T>& request )
+        { return (*this) << request.getID(); }
+
+    /** Write a std::vector of serializable items. @version 1.0 */
+    template< class T >
+    DataOStream& operator << ( const std::vector< T >& value );
+
+    /** Write a std::map of serializable items. @version 1.0 */
+    template< class K, class V >
+    DataOStream& operator << ( const std::map< K, V >& value );
+
+    /** Write a std::set of serializable items. @version 1.0 */
+    template< class T >
+    DataOStream& operator << ( const std::set< T >& value );
+
+    /** Write a stde::hash_map of serializable items. @version 1.0 */
+    template< class K, class V >
+    DataOStream& operator << ( const stde::hash_map< K, V >& value );
+
+    /** Write a stde::hash_set of serializable items. @version 1.0 */
+    template< class T >
+    DataOStream& operator << ( const stde::hash_set< T >& value );
+
+    /** @internal
+     * Serialize child objects.
      *
-     * Implements buffering, retaining and compressing data in a binary format.
-     * Derived classes send the data using the appropriate commands.
+     * The DataIStream has a deserialize counterpart to this method. All
+     * child objects have to be registered or mapped beforehand.
      */
-    class DataOStream : public lunchbox::NonCopyable
-    {
-    public:
-        /** @name Internal */
-        //@{
-        /** @internal Disable and flush the output to the current receivers. */
-        CO_API void disable();
+    template< typename C >
+    void serializeChildren( const std::vector< C* >& children );
+    //@}
 
-        /** @internal Enable copying of all data into a saved buffer. */
-        void enableSave();
+protected:
+    CO_API DataOStream(); //!< @internal
+    DataOStream( DataOStream& rhs );  //!< @internal
+    virtual CO_API ~DataOStream(); //!< @internal
 
-        /** @internal Disable copying of all data into a saved buffer. */
-        void disableSave();
+    /** @internal */
+    CO_API lunchbox::Bufferb& getBuffer();
 
-        /** @internal @return if data was sent since the last enable() */
-        CO_API bool hasSentData() const;
+    /** @internal Initialize the given compressor. */
+    void _initCompressor( const uint32_t compressor );
 
-        /** @internal */
-        CO_API const Connections& getConnections() const;
+    /** @internal Enable output. */
+    CO_API void _enable();
 
-        /** @internal Stream the data header (compressor, nChunks). */
-        DataOStream& streamDataHeader( DataOStream& os );
+    /** @internal Flush remaining data in the buffer. */
+    void flush( const bool last );
 
-        /** @internal Send the (compressed) data using the given connection. */
-        void sendBody( ConnectionPtr connection, const uint64_t dataSize );
+    /** @internal
+     * Set up the connection list for a group of nodes, using multicast
+     * where possible.
+     */
+    void _setupConnections( const Nodes& receivers );
 
-        /** @internal @return the compressed data size, 0 if uncompressed.*/
-        uint64_t getCompressedDataSize() const;
-        //@}
+    void _setupConnections( const Connections& connections );
 
-        /** @name Data output */
-        //@{
-        /** Write a plain data item by copying it to the stream. @version 1.0 */
-        template< class T > DataOStream& operator << ( const T& value )
-            { _write( &value, sizeof( value )); return *this; }
+    /** @internal Set up the connection (list) for one node. */
+    void _setupConnection( NodePtr node, const bool useMulticast );
 
-        /** Write a C array. @version 1.0 */
-        template< class T > DataOStream& operator << ( Array< T > array )
-            { _write( array.data, array.getNumBytes( )); return *this; }
+    /** @internal Needed by unit test. */
+    CO_API void _setupConnection( ConnectionPtr connection );
+    friend class DataStreamTest::Sender;
 
-        /** Write a lunchbox::Buffer. @version 1.0 */
-        template< class T >
-        DataOStream& operator << ( const lunchbox::Buffer< T >& buffer );
+    /** @internal Resend the saved buffer to all enabled connections. */
+    void _resend();
 
-        /** Transmit a request identifier. @version 1.1.1 */
-        template< class T >
-        DataOStream& operator << ( const lunchbox::RequestFuture<T>& request )
-            { return (*this) << request.getID(); }
+    void _clearConnections(); //!< @internal
 
-        /** Write a std::vector of serializable items. @version 1.0 */
-        template< class T >
-        DataOStream& operator << ( const std::vector< T >& value );
+    /** @internal @name Data sending, used by the subclasses */
+    //@{
+    /** @internal Send a data buffer (command) to the receivers. */
+    virtual void sendData( const void* buffer, const uint64_t size,
+                           const bool last ) = 0;
+    //@}
 
-        /** Write a std::map of serializable items. @version 1.0 */
-        template< class K, class V >
-        DataOStream& operator << ( const std::map< K, V >& value );
+    /** @internal Reset the whole stream. */
+    virtual CO_API void reset();
 
-        /** Write a std::set of serializable items. @version 1.0 */
-        template< class T >
-        DataOStream& operator << ( const std::set< T >& value );
+private:
+    detail::DataOStream* const _impl;
 
-        /** Write a stde::hash_map of serializable items. @version 1.0 */
-        template< class K, class V >
-        DataOStream& operator << ( const stde::hash_map< K, V >& value );
+    /** Collect compressed data. */
+    CO_API uint64_t _getCompressedData( void** chunks,
+                                        uint64_t* chunkSizes ) const;
 
-        /** Write a stde::hash_set of serializable items. @version 1.0 */
-        template< class T >
-        DataOStream& operator << ( const stde::hash_set< T >& value );
+    /** Write a number of bytes from data into the stream. */
+    CO_API void _write( const void* data, uint64_t size );
 
-        /** @internal
-         * Serialize child objects.
-         *
-         * The DataIStream has a deserialize counterpart to this method. All
-         * child objects have to be registered or mapped beforehand.
-         */
-        template< typename C >
-        void serializeChildren( const std::vector< C* >& children );
-        //@}
+    /** Helper function preparing data for sendData() as needed. */
+    void _sendData( const void* data, const uint64_t size );
 
-    protected:
-        CO_API DataOStream(); //!< @internal
-        DataOStream( DataOStream& rhs );  //!< @internal
-        virtual CO_API ~DataOStream(); //!< @internal
+    /** Reset after sending a buffer. */
+    void _resetBuffer();
 
-        /** @internal */
-        CO_API lunchbox::Bufferb& getBuffer();
-
-        /** @internal Initialize the given compressor. */
-        void _initCompressor( const uint32_t compressor );
-
-        /** @internal Enable output. */
-        CO_API void _enable();
-
-        /** @internal Flush remaining data in the buffer. */
-        void flush( const bool last );
-
-        /** @internal
-         * Set up the connection list for a group of nodes, using multicast
-         * where possible.
-         */
-        void _setupConnections( const Nodes& receivers );
-
-        void _setupConnections( const Connections& connections );
-
-        /** @internal Set up the connection (list) for one node. */
-        void _setupConnection( NodePtr node, const bool useMulticast );
-
-        /** @internal Needed by unit test. */
-        CO_API void _setupConnection( ConnectionPtr connection );
-        friend class DataStreamTest::Sender;
-
-        /** @internal Resend the saved buffer to all enabled connections. */
-        void _resend();
-
-        void _clearConnections(); //!< @internal
-
-        /** @internal @name Data sending, used by the subclasses */
-        //@{
-        /** @internal Send a data buffer (command) to the receivers. */
-        virtual void sendData( const void* buffer, const uint64_t size,
-                               const bool last ) = 0;
-        //@}
-
-        /** @internal Reset the whole stream. */
-        virtual CO_API void reset();
-
-    private:
-        detail::DataOStream* const _impl;
-
-        /** Collect compressed data. */
-        CO_API uint64_t _getCompressedData( void** chunks,
-                                            uint64_t* chunkSizes ) const;
-
-        /** Write a number of bytes from data into the stream. */
-        CO_API void _write( const void* data, uint64_t size );
-
-        /** Helper function preparing data for sendData() as needed. */
-        void _sendData( const void* data, const uint64_t size );
-
-        /** Reset after sending a buffer. */
-        void _resetBuffer();
-
-        /** Write a vector of trivial data. */
-        template< class T >
-        DataOStream& _writeFlatVector( const std::vector< T >& value )
+    /** Write a vector of trivial data. */
+    template< class T >
+    DataOStream& _writeFlatVector( const std::vector< T >& value )
         {
             const uint64_t nElems = value.size();
             _write( &nElems, sizeof( nElems ));
@@ -195,11 +201,11 @@ namespace DataStreamTest { class Sender; }
                 _write( &value.front(), nElems * sizeof( T ));
             return *this;
         }
-        /** Send the trailing data (command) to the receivers */
-        void _sendFooter( const void* buffer, const uint64_t size );
-    };
+    /** Send the trailing data (command) to the receivers */
+    void _sendFooter( const void* buffer, const uint64_t size );
+};
 
-    std::ostream& operator << ( std::ostream&, const DataOStream& );
+std::ostream& operator << ( std::ostream&, const DataOStream& );
 }
 
 #include "dataOStream.ipp" // template implementation

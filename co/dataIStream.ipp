@@ -34,14 +34,18 @@ namespace co
                       nElems << " > " << maxElems );
         if( nElems == 0 )
             str.clear();
-        else if( nElems <= maxElems )
-            str.assign( static_cast< const char* >( getRemainingBuffer(nElems)),
-                        size_t( nElems ));
         else
-            str.assign(
-                static_cast< const char* >( getRemainingBuffer(maxElems)),
-                size_t( maxElems ));
+        {
+            if( nElems > maxElems )
+            {
+                LBWARN << "String read mismatch, only reading " << maxElems
+                       << " of " << nElems << " sent" << std::endl;
+                nElems = maxElems;
+            }
 
+            const void* data = getRemainingBuffer( nElems );
+            str.assign( static_cast< const char* >( data ), size_t( nElems ));
+        }
         return *this;
     }
 
