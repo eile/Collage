@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2012, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2012-2013, Stefan Eilemann <eile@eyescale.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -21,27 +21,34 @@
 #define CO_ARRAY_H
 
 #include <co/types.h>
+#include <lunchbox/debug.h>
 
 namespace co
 {
-    /** A wrapper to (de)serialize arrays. */
-    template< class T > class Array
-    {
-    public:
-        /** Create a new array wrapper for the given data. @version 1.0 */
-        explicit Array( T* data_, const size_t num_ )
-                : data( data_ ), num( num_ ) {}
+/** A wrapper to (de)serialize arrays. */
+template< class T > class Array
+{
+public:
+    /** Create a new array wrapper for the given data. @version 1.0 */
+    explicit Array( T* data_, const size_t num_ )
+        : data( data_ ), num( num_ ) {}
 
-        /** @return the number of bytes stored in the pointer. @version 1.0 */
-        size_t getNumBytes() const { return num * sizeof( T ); }
+    /** @return the number of bytes stored in the pointer. @version 1.0 */
+    size_t getNumBytes() const { return num * sizeof( T ); }
 
-        T* const data; //!< The data
-        const size_t num; //!<  The number of elements in the data
-    };
+    T* const data; //!< The data
+    const size_t num; //!<  The number of elements in the data
+};
 
-    template<> inline size_t Array< void >::getNumBytes() const { return num; }
-    template<> inline size_t Array< const void >::getNumBytes() const
-        { return num; }
+template<> inline size_t Array< void >::getNumBytes() const { return num; }
+template<> inline size_t Array< const void >::getNumBytes() const { return num;}
+
+/** Pretty-print all members of the array. @version 1.1.1 */
+template< class T >
+inline std::ostream& operator << ( std::ostream& os, const Array< T >& array )
+{
+    return os << lunchbox::format( array.data, array.num );
 }
 
+}
 #endif // CO_ARRAY_H
