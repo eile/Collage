@@ -436,7 +436,7 @@ void DataOStream::sendBody( ConnectionPtr connection, const uint64_t dataSize )
     nBytesSent += _impl->buffer.getSize();
 #endif
     const uint32_t nChunks = _impl->compressor.getNumResults();
-    uint64_t* chunkSizes =static_cast< uint64_t* >
+    uint64_t* chunkSizes = static_cast< uint64_t* >
                                ( alloca (nChunks * sizeof( uint64_t )));
     void** chunks = static_cast< void ** >
                                   ( alloca( nChunks * sizeof( void* )));

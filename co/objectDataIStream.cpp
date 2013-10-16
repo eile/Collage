@@ -173,9 +173,6 @@ bool ObjectDataIStream::getNextBuffer( uint32_t& compressor, uint32_t& nChunks,
     if( dataSize == 0 ) // empty command
         return getNextBuffer( compressor, nChunks, chunkData, size );
 
-    size = dataSize;
-    compressor = command.getCompressor();
-    nChunks = command.getChunks();
     switch( command.getCommand( ))
     {
       case CMD_OBJECT_INSTANCE:
@@ -186,9 +183,13 @@ bool ObjectDataIStream::getNextBuffer( uint32_t& compressor, uint32_t& nChunks,
         command.get< UUID >();      // commit UUID
         break;
     }
-    *chunkData = command.getRemainingBuffer( command.getRemainingBufferSize( ));
 
+    size = dataSize;
+    compressor = command.getCompressor();
+    nChunks = command.getChunks();
+    *chunkData = command.getRemainingBuffer( command.getRemainingBufferSize( ));
     setSwapping( command.isSwapping( ));
+
     return true;
 }
 

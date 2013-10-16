@@ -34,9 +34,8 @@ namespace co
         void enableSlaveCommit( NodePtr node );
 
     protected:
-        void sendData( const void* buffer, const uint64_t size,
-                               const bool last ) override;
-
+        void sendData( const void* data, const uint64_t size, const bool last )
+            override;
     private:
         UUID _commit;
     };

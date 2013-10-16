@@ -33,8 +33,8 @@ namespace co
         virtual ~ObjectDeltaDataOStream();
 
     protected:
-        void sendData( const void* buffer, const uint64_t size,
-                               const bool last ) override;
+        void sendData( const void* data, const uint64_t size, const bool last )
+            override;
     };
 }
 #endif //CO_OBJECTDELTADATAOSTREAM_H

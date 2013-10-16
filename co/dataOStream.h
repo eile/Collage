@@ -168,7 +168,7 @@ protected:
     /** @internal @name Data sending, used by the subclasses */
     //@{
     /** @internal Send a data buffer (command) to the receivers. */
-    virtual void sendData( const void* buffer, const uint64_t size,
+    virtual void sendData( const void* data, const uint64_t size,
                            const bool last ) = 0;
     //@}
 
