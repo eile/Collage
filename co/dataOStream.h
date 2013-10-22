@@ -57,8 +57,9 @@ public:
     /** @internal Disable copying of all data into a saved buffer. */
     void disableSave();
 
-    /** @internal @return if data was sent since the last enable() */
-    CO_API bool hasSentData() const;
+    /** @internal Send the (compressed) data using the given connection. */
+    void sendBody( ConnectionPtr connection, const void* data,
+                   const uint64_t size );
 
     /** @internal */
     CO_API const Connections& getConnections() const;

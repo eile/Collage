@@ -44,12 +44,11 @@ void ObjectSlaveDataOStream::enableSlaveCommit( NodePtr node )
     _enable();
 }
 
-void ObjectSlaveDataOStream::sendData( const void*, const uint64_t size,
+void ObjectSlaveDataOStream::sendData( const void* data, const uint64_t size,
                                        const bool last )
 {
-    ObjectDataOStream::send( CMD_OBJECT_SLAVE_DELTA, COMMANDTYPE_OBJECT,
-                             _cm->getObject()->getMasterInstanceID(), size,
-                             last ) << _commit;
+    send( CMD_OBJECT_SLAVE_DELTA, COMMANDTYPE_OBJECT,
+          _cm->getObject()->getMasterInstanceID(), data, size, last ) <<_commit;
 
     if( last )
         _commit = UUID( true /* generate new commit ID */ );

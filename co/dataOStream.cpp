@@ -421,20 +421,21 @@ DataOStream& DataOStream::streamDataHeader( DataOStream& os )
     return os;
 }
 
-void DataOStream::sendBody( ConnectionPtr connection, const uint64_t dataSize )
+void DataOStream::sendBody( ConnectionPtr connection, const void* data,
+                            const uint64_t size )
 {
+#ifdef EQ_INSTRUMENT_DATAOSTREAM
+    nBytesSent += size;
+#endif
+
     const uint32_t compressor = _impl->getCompressor();
     if( compressor == EQ_COMPRESSOR_NONE )
     {
-        if( dataSize > 0 )
-            LBCHECK( connection->send( _impl->buffer.getData(), dataSize,
-                                       true ));
+        if( size > 0 )
+            LBCHECK( connection->send( data, size, true ));
         return;
     }
 
-#ifdef CO_INSTRUMENT_DATAOSTREAM
-    nBytesSent += _impl->buffer.getSize();
-#endif
     const uint32_t nChunks = _impl->compressor.getNumResults();
     uint64_t* chunkSizes = static_cast< uint64_t* >
                                ( alloca (nChunks * sizeof( uint64_t )));
@@ -443,7 +444,7 @@ void DataOStream::sendBody( ConnectionPtr connection, const uint64_t dataSize )
 
 #ifdef CO_INSTRUMENT_DATAOSTREAM
     const uint64_t compressedSize = _getCompressedData( chunks, chunkSizes );
-    nBytesSaved += _impl->buffer.getSize() - compressedSize;
+    nBytesSaved += size - compressedSize;
 #else
     _getCompressedData( chunks, chunkSizes );
 #endif
