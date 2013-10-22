@@ -168,8 +168,8 @@ int main( int argc, char **argv )
                       server->object->getVersion( ));
             TESTINFO( object.getVersion() == co::VERSION_FIRST + 2,
                       object.getVersion( ));
-            TEST( object.nSync == 2 );
-            TEST( server->object->nSync == 2 );
+            TESTINFO( object.nSync == 0, object.nSync );
+            TESTINFO( server->object->nSync == 4, server->object->nSync );
         }
 
         server->unmapObject( server->object );
