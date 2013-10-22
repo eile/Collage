@@ -157,13 +157,13 @@ uint128_t OCommand::getVersion() const
     return VERSION_NONE;
 }
 
-void OCommand::sendData( const void* buffer, const uint64_t size,
+void OCommand::sendData( const void* data, const uint64_t size,
                          const bool last )
 {
     LBASSERT( !_impl->dispatcher );
     LBASSERT( last );
     LBASSERTINFO( size >= 16, size );
-    LBASSERT( getBuffer().getData() == buffer );
+    LBASSERT( getBuffer().getData() == data );
     LBASSERT( getBuffer().getSize() == size );
     LBASSERT( getBuffer().getMaxSize() >= COMMAND_MINSIZE );
 
