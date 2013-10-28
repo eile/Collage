@@ -109,9 +109,9 @@ private:
     ChangeType getChangeType() const final { return INSTANCE; }
     //uint32_t chooseCompressor() const final { return EQ_COMPRESSOR_NONE; }
 
-    void serialize( co::DataOStream& os, const uint64_t bits ) override
+    void serialize( co::DataOStream& os, const uint64_t ) override
         { os << buffer_; }
-    void deserialize( co::DataIStream& is, const uint64_t bits ) override
+    void deserialize( co::DataIStream& is, const uint64_t ) override
         { is >> buffer_; }
 };
 
@@ -453,7 +453,7 @@ int main( int argc, char **argv )
     try // command line parsing
     {
         TCLAP::CmdLine command(
-            "nodeperf - Collage node-to-node network benchmark tool", ' ',
+            "objectperf - Collage object data distribution benchmark tool", ' ',
             co::Version::getString( ));
         TCLAP::ValueArg< std::string > remoteArg( "c", "connect",
                             "connect to remote node, implies --disableZeroconf",
@@ -468,12 +468,12 @@ int main( int argc, char **argv )
                                          command );
         TCLAP::ValueArg<size_t> numArg( "n", "numObjects", "number of objects",
                                         false, nObjects, "unsigned", command );
-        TCLAP::VariableSwitchArg ignoreCoArgs( "co",
-                                               "Ignored Collage options",
-                                               command );
         TCLAP::UnlabeledMultiArg< std::string >
             ignoreArgs( "ignore", "Ignored unlabeled arguments", false, "any",
                         command );
+#ifdef TCPLAP_HAS_IGNOREUNMATCHED
+        command.ignoreUnmatched( true );
+#endif
         command.parse( argc, argv );
 
         if( remoteArg.isSet( ))
