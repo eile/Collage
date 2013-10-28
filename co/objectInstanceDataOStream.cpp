@@ -117,7 +117,7 @@ void ObjectInstanceDataOStream::pushMap( const Nodes& receivers,
 {
     _command = CMD_NODE_OBJECT_INSTANCE_PUSH;
     _nodeID = 0;
-    _instanceID = EQ_INSTANCE_NONE;
+    _instanceID = CO_INSTANCE_NONE;
     _setupConnections( receivers );
 
     _resend();

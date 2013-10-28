@@ -746,9 +746,10 @@ void LocalNode::objectPush( const uint128_t& groupID,
 void LocalNode::objectPushMap( const uint128_t& groupID,
                                const uint128_t& objectType,
                                const uint128_t& objectID, DataIStream& istream,
-                               const uint128_t& version,
-                               const uint32_t masterInstanceID,
-                               const uint32_t changeType, NodePtr master  )
+                               const uint128_t& /*version*/,
+                               const uint32_t /*masterInstanceID*/,
+                               const uint32_t /*changeType*/,
+                               NodePtr /*master*/ )
 {
     lunchbox::ScopedRead mutex( _impl->pushHandlers );
     HandlerHashCIter i = _impl->pushHandlers->find( groupID );

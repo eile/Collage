@@ -445,7 +445,6 @@ bool ObjectStore::mapObjectSync( const uint32_t requestID )
     return mapped;
 }
 
-<<<<<<< HEAD
 uint32_t ObjectStore::syncObjectNB( Object* object, NodePtr master,
                                     const UUID& id, const uint32_t instanceID )
 {
@@ -531,7 +530,8 @@ bool ObjectStore::syncObjectSync( const uint32_t requestID, Object* object )
                          << std::endl;
     delete is;
     return true;
-=======
+}
+
 bool ObjectStore::completePushMap( Object* object, const UUID& id,
                                    const uint128_t& version,
                                    const uint32_t inMasterInstanceID,
@@ -617,7 +617,6 @@ bool ObjectStore::completePushMap( Object* object, const UUID& id,
     object->notifyAttached();
     LBLOG( LOG_OBJECTS ) << "Mapped " << lunchbox::className( object ) << std::endl;
     return mapped;
->>>>>>> ee8a00ac76c1534b016bf66b9fd30e93e5714998
 }
 
 void ObjectStore::unmapObject( Object* object )

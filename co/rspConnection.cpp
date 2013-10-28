@@ -502,7 +502,7 @@ void RSPConnection::_handleConnectedTimeout()
         if ( all )
         {
             LBWARN << "closing all child connections" << std::endl;
-            _sendSimpleDatagram( ID_EXIT, _id, 0 );
+            _sendSimpleDatagram( ID_EXIT, _id );
             _appBuffers.pushFront( 0 ); // unlock write function
 
             for( RSPConnectionsCIter i =_children.begin();
@@ -526,7 +526,7 @@ void RSPConnection::_handleConnectedTimeout()
             {
                 LBWARN << "removing child connection " << child->_id
                        << std::endl;
-                _sendSimpleDatagram( ID_EXIT, child->_id, 0 );
+                _sendSimpleDatagram( ID_EXIT, child->_id );
                 _removeConnection( child->_id );
             }
             else

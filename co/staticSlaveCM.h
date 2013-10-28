@@ -56,7 +56,7 @@ namespace co
         void applyMapData( const uint128_t& version ) override;
         void addInstanceDatas( const ObjectDataIStreamDeque&,
                                const uint128_t& startVersion ) override;
-        void setVersion( const uint128_t& version ) override { /* NOP */ }
+        void setVersion( const uint128_t& ) override { /* NOP */ }
 
     protected:
         /** input stream for receiving the current version */

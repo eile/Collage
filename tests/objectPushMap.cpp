@@ -83,7 +83,7 @@ public:
     Object* object;
 
 protected:
-    virtual void objectPushMap( const uint128_t& groupID, 
+    virtual void objectPushMap( const uint128_t& /*groupID*/,
                                 const uint128_t& typeID,
                                 const uint128_t& objectID,
                                 co::DataIStream& istream,
@@ -148,15 +148,14 @@ int main( int argc, char **argv )
 
     Object *masterObj;
 
-    for( unsigned i = co::Object::NONE+1; i <= co::Object::UNBUFFERED; ++i )
+    for( uint64_t i = co::Object::NONE+1; i <= co::Object::UNBUFFERED; ++i )
     {
-
         const co::Object::ChangeType type = co::Object::ChangeType( i );
         masterObj = new Object( type );
         masterObj->setMessage( message );
         TEST( client->registerObject( masterObj ) );
-        masterObj->pushMap( 42, i, nodes );
-    
+        masterObj->pushMap( co::uint128_t(42), co::uint128_t(i), nodes );
+
         monitor.waitEQ( co::Object::ChangeType( type ) );
 
         TEST( masterObj->getMessage() == server->object->getMessage() )
@@ -164,24 +163,24 @@ int main( int argc, char **argv )
         if( type > co::Object::STATIC ) // no commits for static objects
         {
             masterObj->setMessage( new_message );
- 
+
             masterObj->commit();
             masterObj->commit();
- 
+
             lunchbox::sleep( 110 );
-            server->object->sync( 3 );
+            server->object->sync( co::uint128_t( 3 ));
 
             TESTINFO( server->object->getVersion() == 3,
                       server->object->getVersion());
-            
+
             TESTINFO( masterObj->getVersion() == 3,
                       masterObj->getVersion());
-            
+
             TESTINFO( masterObj->getMessage() == server->object->getMessage(),
                       server->object->getMessage() )
         }
 
-  
+
         server->unmapObject( server->object );
         delete server->object;
         server->object = 0;

@@ -130,7 +130,7 @@ public:
      */
     virtual void addSlave( const MasterCMCommand& command ) = 0;
 
-    virtual void addPushSlaves( const Nodes& nodes) { /*NOP*/ }
+    virtual void addPushSlaves( const Nodes& ) { /*NOP*/ }
 
     /**
      * Remove a subscribed slave.
@@ -152,8 +152,7 @@ public:
     virtual void applyMapData( const uint128_t& version LB_UNUSED )
         { LBUNIMPLEMENTED; }
 
-    virtual void setVersion( const uint128_t& version )
-    { LBUNIMPLEMENTED; }
+    virtual void setVersion( const uint128_t& ) { LBUNIMPLEMENTED; }
 
     /** Add existing instance data to the object (from local node cache) */
     virtual void addInstanceDatas( const ObjectDataIStreamDeque&,
