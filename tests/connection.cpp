@@ -26,7 +26,8 @@
 #include <lunchbox/monitor.h>
 #include <iostream>
 
-#define PACKETSIZE (2048)
+#define PACKETSIZE (12345)
+#define NPACKETS   (23456)
 
 namespace
 {
@@ -40,6 +41,39 @@ static co::ConnectionType types[] =
 #endif
     co::CONNECTIONTYPE_NONE // must be last
 };
+
+class Reader : public lunchbox::Thread
+{
+public:
+    Reader( co::ConnectionPtr connection ) : connection_( connection )
+    {
+        TEST( start( ));
+    }
+
+    void run() override
+    {
+        co::Buffer buffer;
+        co::BufferPtr syncBuffer;
+
+        for( size_t i = 0; i < NPACKETS; ++i )
+        {
+            connection_->recvNB( &buffer, PACKETSIZE );
+            TEST( connection_->recvSync( syncBuffer ));
+            TEST( syncBuffer == &buffer );
+            TEST( buffer.getSize() == PACKETSIZE );
+            buffer.setSize( 0 );
+        }
+
+        connection_->recvNB( &buffer, PACKETSIZE );
+        TEST( !connection_->recvSync( syncBuffer ));
+        TEST( connection_->isClosed( ));
+        connection_ = 0;
+    }
+
+private:
+    co::ConnectionPtr connection_;
+};
+
 }
 
 int main( int argc, char **argv )
@@ -88,25 +122,23 @@ int main( int argc, char **argv )
                 reader = listener->acceptSync();
                 break;
         }
-        TEST( writer.isValid( ));
-        TEST( reader.isValid( ));
+        TEST( writer );
+        TEST( reader );
 
-        co::Buffer buffer;
-        reader->recvNB( &buffer, PACKETSIZE );
-
+        Reader readThread( reader );
         uint8_t out[ PACKETSIZE ];
-        TEST( writer->send( out, PACKETSIZE ));
 
-        co::BufferPtr syncBuffer;
-        TEST( reader->recvSync( syncBuffer ));
-        TEST( syncBuffer == &buffer );
-        TEST( buffer.getSize() == PACKETSIZE );
+        lunchbox::Clock clock;
+        for( size_t j = 0; j < NPACKETS; ++j )
+            TEST( writer->send( out, PACKETSIZE ));
 
         writer->close();
-        buffer.setSize( 0 );
-        reader->recvNB( &buffer, PACKETSIZE );
-        TEST( !reader->recvSync( syncBuffer ));
-        TEST( reader->isClosed( ));
+        readThread.join();
+        const float time = clock.getTimef();
+
+        std::cout << desc->type << ": "
+                  << NPACKETS * PACKETSIZE / 1024.f / 1024.f * 1000.f / time
+                  << " MB/s" << std::endl;
 
         if( listener == writer )
             listener = 0;

@@ -20,12 +20,16 @@
 
 #include <co/co.h>
 #include <boost/foreach.hpp>
+#pragma warning( disable: 4275 )
+#include <boost/program_options.hpp>
+#pragma warning( default: 4275 )
 #include <iostream>
 
 #ifndef MIN
 #  define MIN LB_MIN
 #endif
-#include <tclap/CmdLine.h>
+
+namespace po = boost::program_options;
 
 namespace
 {
@@ -154,53 +158,59 @@ int main( int argc, char **argv )
 
     try // command line parsing
     {
-        TCLAP::CmdLine command(
-            "nodeperf - Collage node-to-node network benchmark tool", ' ',
-            co::Version::getString( ));
-        TCLAP::ValueArg< std::string > remoteArg( "c", "connect",
-                            "connect to remote node, implies --disableZeroconf",
-                                                  false, "",
-                                                  "IP[:port][:protocol]",
-                                                  command );
-        TCLAP::SwitchArg zcArg( "d", "disableZeroconf",
-                                "Disable automatic connect using zeroconf",
-                                command, false );
-        TCLAP::SwitchArg objectsArg( "o", "object",
-                   "Benchmark object-object instead of node-node communication",
-                                     command, false );
-        TCLAP::ValueArg<size_t> sizeArg( "p", "packetSize", "packet size",
-                                         false, packetSize, "unsigned",
-                                         command );
-        TCLAP::ValueArg<size_t> packetsArg( "n", "numPackets",
-                                            "number of packets to send",
-                                            false, nPackets, "unsigned",
-                                            command );
-        TCLAP::ValueArg<uint32_t> waitArg( "w", "wait",
-                                           "wait time (ms) between sends",
-                                           false, 0, "unsigned", command );
-        command.parse( argc, argv );
+        po::options_description options(
+            "nodeperf - Collage node-to-node network benchmark tool "
+            + co::Version::getString( ));
 
-        if( remoteArg.isSet( ))
+        std::string remoteString("");
+        bool showHelp(false);
+        bool disableZeroconf(false);
+
+        options.add_options()
+            ( "help,h",       po::bool_switch(&showHelp)->default_value(false),
+              "show help message" )
+            ( "connect,c",    po::value<std::string>(&remoteString),
+              "connect to remote node, implies --disableZeroconf. Format IP[:port][:protocol]" )
+            ( "disableZeroconf,d",
+              po::bool_switch(&disableZeroconf)->default_value(false),
+              "Disable automatic connect using zeroconf" )
+            ( "object,o",    po::bool_switch(&useObjects)->default_value(false),
+              "Benchmark object-object instead of node-node communication" )
+            ( "packetSize,p",  po::value<std::size_t>(&packetSize),
+              "packet size" )
+            ( "numPackets,n", po::value<uint32_t>(&nPackets),
+              "number of packets to send" )
+            ( "wait,w",       po::value<uint32_t>(&waitTime),
+              "wait time (ms) between sends" );
+
+        // parse program options
+        po::variables_map variableMap;
+        po::store( po::command_line_parser( argc, argv ).options(
+                       options ).allow_unregistered().run(), variableMap );
+        po::notify( variableMap );
+
+        // evaluate pared arguments
+        if( showHelp )
+        {
+            LBINFO << options << std::endl;
+            co::exit();
+            return EXIT_SUCCESS;
+        }
+
+        if( variableMap.count("connect") == 1 )
         {
             remote = new co::ConnectionDescription;
             remote->port = 4242;
-            remote->fromString( remoteArg.getValue( ));
+            remote->fromString( remoteString );
         }
-        useZeroconf = !zcArg.isSet();
-        useObjects = objectsArg.isSet();
 
-        if( sizeArg.isSet( ))
-            packetSize = sizeArg.getValue();
-        if( packetsArg.isSet( ))
-            nPackets = uint32_t( packetsArg.getValue( ));
-        if( waitArg.isSet( ))
-            waitTime = waitArg.getValue();
+        if( disableZeroconf )
+            useZeroconf = false;
     }
-    catch( TCLAP::ArgException& exception )
+    catch( std::exception& exception )
     {
-        LBERROR << "Command line parse error: " << exception.error()
-                << " for argument " << exception.argId() << std::endl;
-
+        LBERROR << "Command line parse error: " << exception.what()
+            << std::endl;
         co::exit();
         return EXIT_FAILURE;
     }
@@ -272,7 +282,7 @@ int main( int argc, char **argv )
                 for( co::NodesCIter i = nodes_->begin(); i != nodes_->end();++i)
                 {
                     co::NodePtr node = *i;
-                    co::NodesCIter j = stde::find( nodes, node );
+                    co::NodesCIter j = lunchbox::find( nodes, node );
                     if( j == nodes.end( ))
                     {
                         // new node, map perf object

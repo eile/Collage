@@ -21,13 +21,16 @@
 #define LB_RELEASE_ASSERT
 
 #include <co/co.h>
+#pragma warning( disable: 4275 )
+#include <boost/program_options.hpp>
+#pragma warning( default: 4275 )
+#include <iostream>
 
 #ifndef MIN
 #  define MIN LB_MIN
 #endif
-#include <tclap/CmdLine.h>
 
-#include <iostream>
+namespace po = boost::program_options;
 
 namespace
 {
@@ -308,58 +311,58 @@ int main( int argc, char **argv )
 
     try // command line parsing
     {
-        TCLAP::CmdLine command( "netPerf - Collage network benchmark tool",
-                                ' ', co::Version::getString( ));
-        TCLAP::ValueArg< std::string > clientArg( "c", "client",
-                                                  "run as client", true, "",
-                                                  "IP[:port][:protocol]" );
-        TCLAP::ValueArg< std::string > serverArg( "s", "server",
-                                                  "run as server", true, "",
-                                                  "IP[:port][:protocol]" );
-        TCLAP::SwitchArg threadedArg( "t", "threaded",
-                          "Run each receive in a separate thread (server only)",
-                                      command, false );
-        TCLAP::ValueArg<size_t> sizeArg( "p", "packetSize", "packet size",
-                                         false, packetSize, "unsigned",
-                                         command );
-        TCLAP::ValueArg<size_t> packetsArg( "n", "numPackets",
-                                            "number of packets to send",
-                                            false, nPackets, "unsigned",
-                                            command );
-        TCLAP::ValueArg<uint32_t> waitArg( "w", "wait",
-                                   "wait time (ms) between sends (client only)",
-                                         false, 0, "unsigned", command );
-        TCLAP::ValueArg<uint32_t> delayArg( "d", "delay",
-                                "wait time (ms) between receives (server only)",
-                                            false, 0, "unsigned", command );
+        po::options_description options(
+            "netperf - Collage network benchmark tool "
+            + co::Version::getString( ));
 
-        command.xorAdd( clientArg, serverArg );
-        command.parse( argc, argv );
+        std::string clientString("");
+        std::string serverString("");
+        bool showHelp(false);
 
-        if( clientArg.isSet( ))
-            description->fromString( clientArg.getValue( ));
-        else if( serverArg.isSet( ))
+        options.add_options()
+            ( "help,h",       po::bool_switch(&showHelp)->default_value(false),
+              "show help message" )
+            ( "client,c",     po::value<std::string>(&clientString),
+              "run as client, format IP[:port][:protocol]" )
+            ( "server,s",     po::value<std::string>(&serverString),
+              "run as server, format IP[:port][:protocol]" )
+            ( "threaded,t",  po::bool_switch(&useThreads)->default_value(false),
+              "Run each receive in a separate thread (server only)" )
+            ( "packetSize,p", po::value<std::size_t>(&packetSize),
+              "packet size" )
+            ( "numPackets,n", po::value<std::size_t>(&nPackets),
+              "number of packets to send, unsigned int" )
+            ( "wait,w",       po::value<uint32_t>(&waitTime),
+              "wait time (ms) between sends (client only)" )
+            ( "delay,d",      po::value<uint32_t>(&_delay),
+              "wait time (ms) between receives (server only" );
+
+        // parse program options
+        po::variables_map variableMap;
+        po::store( po::command_line_parser( argc, argv ).options(
+                       options ).allow_unregistered().run(), variableMap );
+        po::notify( variableMap );
+
+        // evaluate pared arguments
+        if( showHelp )
         {
-            isClient = false;
-            description->fromString( serverArg.getValue( ));
+            LBINFO << options << std::endl;
+            co::exit();
+            return EXIT_SUCCESS;
         }
 
-        useThreads = threadedArg.isSet();
-
-        if( sizeArg.isSet( ))
-            packetSize = sizeArg.getValue();
-        if( packetsArg.isSet( ))
-            nPackets = packetsArg.getValue();
-        if( waitArg.isSet( ))
-            waitTime = waitArg.getValue();
-        if( delayArg.isSet( ))
-            _delay = delayArg.getValue();
+        if( variableMap.count( "client" ) == 1 )
+            description->fromString(clientString);
+        else if( variableMap.count( "server" ) == 1 )
+        {
+            isClient = false;
+            description->fromString(serverString);
+        }
     }
-    catch( TCLAP::ArgException& exception )
+    catch( std::exception& exception )
     {
-        LBERROR << "Command line parse error: " << exception.error()
-                << " for argument " << exception.argId() << std::endl;
-
+        LBERROR << "Command line parse error: " << exception.what()
+                << std::endl;
         co::exit();
         return EXIT_FAILURE;
     }

@@ -25,7 +25,7 @@
 
 namespace co
 {
-/** A wrapper to (de)serialize arrays. */
+/** A wrapper to (de)serialize arrays without any memory management. */
 template< class T > class Array
 {
 public:

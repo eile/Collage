@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2012, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
  *               2011-2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -36,11 +36,11 @@ VersionedSlaveCM::VersionedSlaveCM( Object* object, uint32_t masterInstanceID )
         : ObjectCM( object )
         , _version( VERSION_NONE )
         , _currentIStream( 0 )
-        , _masterInstanceID( masterInstanceID )
 #pragma warning(push)
 #pragma warning(disable: 4355)
         , _ostream( this )
 #pragma warning(pop)
+        , _masterInstanceID( masterInstanceID )
 {
     LBASSERT( object );
 
