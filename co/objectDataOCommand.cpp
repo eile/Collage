@@ -23,6 +23,7 @@
 #include "buffer.h"
 #include "objectDataICommand.h"
 #include <lunchbox/plugins/compressorTypes.h>
+#include <boost/foreach.hpp>
 
 namespace co
 {
@@ -100,12 +101,8 @@ ObjectDataOCommand::~ObjectDataOCommand()
     {
         sendHeader( _impl->size );
         const Connections& connections = getConnections();
-        for( ConnectionsCIter i = connections.begin(); i != connections.end();
-             ++i )
-        {
-            ConnectionPtr conn = *i;
-            _impl->stream->sendBody( conn, _impl->data, _impl->size );
-        }
+        BOOST_FOREACH( ConnectionPtr connection, connections )
+            _impl->stream->sendBody( connection, _impl->data, _impl->size );
     }
 
     delete _impl;

@@ -71,9 +71,6 @@ public:
     /** @internal Stream the data header (compressor, nChunks). */
     DataOStream& streamDataHeader( DataOStream& os );
 
-    /** @internal Send the (compressed) data using the given connection. */
-    void sendBody( ConnectionPtr connection, const uint64_t dataSize );
-
     /** @internal @return the compressed data size, 0 if uncompressed.*/
     uint64_t getCompressedDataSize() const;
     //@}
@@ -189,9 +186,6 @@ private:
 
     /** Write a number of bytes from data into the stream. */
     CO_API void _write( const void* data, uint64_t size );
-
-    /** Helper function preparing data for sendData() as needed. */
-    void _sendData( const void* data, const uint64_t size );
 
     /** Reset after sending a buffer. */
     void _resetBuffer();
