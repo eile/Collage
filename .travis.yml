@@ -6,11 +6,11 @@ language: cpp
 script:
  - mkdir Debug
  - cd Debug
- - cmake .. -DCI_BUILD_COMMIT=$TRAVIS_COMMIT -DCMAKE_BUILD_TYPE=Debug
+ - cmake .. -DCI_BUILD_COMMIT=$TRAVIS_COMMIT -DCMAKE_BUILD_TYPE=Debug -DTRAVIS=1
  - env TRAVIS=1 make -j8 tests ARGS=-V
  - mkdir ../Release
  - cd ../Release
- - cmake .. -DCI_BUILD_COMMIT=$TRAVIS_COMMIT -DCMAKE_BUILD_TYPE=Release
+ - cmake .. -DCI_BUILD_COMMIT=$TRAVIS_COMMIT -DCMAKE_BUILD_TYPE=Release -DTRAVIS=1
  - env TRAVIS=1 make -j8 tests ARGS=-V
 before_install:
  - sudo apt-get update -qq
@@ -21,6 +21,7 @@ before_install:
  - sudo apt-get install -qq git || /bin/true
  - sudo apt-get install -qq git-review || /bin/true
  - sudo apt-get install -qq git-svn || /bin/true
+ - sudo apt-get install -qq lcov || /bin/true
  - sudo apt-get install -qq libavahi-compat-libdnssd-dev || /bin/true
  - sudo apt-get install -qq libboost-date-time-dev || /bin/true
  - sudo apt-get install -qq libboost-program-options-dev || /bin/true
@@ -31,7 +32,6 @@ before_install:
  - sudo apt-get install -qq libibverbs-dev || /bin/true
  - sudo apt-get install -qq libjpeg-turbo8-dev || /bin/true
  - sudo apt-get install -qq librdmacm-dev || /bin/true
- - sudo apt-get install -qq libtclap-dev || /bin/true
  - sudo apt-get install -qq libturbojpeg || /bin/true
  - sudo apt-get install -qq libudt-dev || /bin/true
  - sudo apt-get install -qq ninja-build || /bin/true

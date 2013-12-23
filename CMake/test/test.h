@@ -15,8 +15,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef COTEST_TEST_H
-#define COTEST_TEST_H
+#ifndef LBTEST_TEST_H
+#define LBTEST_TEST_H
 
 #include <lunchbox/log.h>
 #include <lunchbox/sleep.h>
@@ -55,16 +55,16 @@ namespace
 class Watchdog : public lunchbox::Thread
 {
 public:
-    Watchdog( const std::string& name ) : _name( name ) {}
+    explicit Watchdog( const std::string& name ) : _name( name ) {}
 
     virtual void run()
         {
             lunchbox::Thread::setName( "Watchdog" );
-#ifdef CO_TEST_RUNTIME
-            lunchbox::sleep( CO_TEST_RUNTIME * 1000 );
+#ifdef TEST_RUNTIME
+            lunchbox::sleep( TEST_RUNTIME * 1000 );
             TESTINFO( false,
                       "Watchdog triggered - " << _name <<
-                      " did not terminate within " << CO_TEST_RUNTIME << "s" );
+                      " did not terminate within " << TEST_RUNTIME << "s" );
 #else
             lunchbox::sleep( 60000 );
             TESTINFO( false,
@@ -80,7 +80,7 @@ private:
 
 int main( int argc, char **argv )
 {
-#ifndef CO_TEST_NO_WATCHDOG
+#ifndef TEST_NO_WATCHDOG
     Watchdog watchdog( argv[0] );
     watchdog.start();
 #endif
@@ -89,7 +89,7 @@ int main( int argc, char **argv )
     if( result != EXIT_SUCCESS )
         return result;
 
-#ifndef CO_TEST_NO_WATCHDOG
+#ifndef TEST_NO_WATCHDOG
     watchdog.cancel();
     lunchbox::sleep( 10 ); // give watchdog time to terminate
 #endif
@@ -98,4 +98,4 @@ int main( int argc, char **argv )
 
 #  define main testMain
 
-#endif // COTEST_TEST_H
+#endif // LBTEST_TEST_H

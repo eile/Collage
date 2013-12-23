@@ -21,12 +21,16 @@
 #include <co/co.h>
 #include <co/connections.h>
 #include <boost/foreach.hpp>
+#pragma warning( disable: 4275 )
+#include <boost/program_options.hpp>
+#pragma warning( default: 4275 )
 #include <iostream>
 
 #ifndef MIN
 #  define MIN LB_MIN
 #endif
-#include <tclap/CmdLine.h>
+
+namespace po = boost::program_options;
 
 static uint64_t objectSize = 0;
 static uint64_t nObjects = 0;
@@ -452,51 +456,58 @@ int main( int argc, char **argv )
 
     try // command line parsing
     {
-        TCLAP::CmdLine command(
-            "objectperf - Collage object data distribution benchmark tool", ' ',
-            co::Version::getString( ));
-        TCLAP::ValueArg< std::string > remoteArg( "c", "connect",
-                            "connect to remote node, implies --disableZeroconf",
-                                                  false, "",
-                                                  "IP[:port][:protocol]",
-                                                  command );
-        TCLAP::SwitchArg zcArg( "d", "disableZeroconf",
-                                "Disable automatic connect using zeroconf",
-                                command, false );
-        TCLAP::ValueArg<size_t> sizeArg( "o", "objectSize", "object size",
-                                         false, objectSize, "unsigned",
-                                         command );
-        TCLAP::ValueArg<size_t> numArg( "n", "numObjects", "number of objects",
-                                        false, nObjects, "unsigned", command );
-        TCLAP::UnlabeledMultiArg< std::string >
-            ignoreArgs( "ignore", "Ignored unlabeled arguments", false, "any",
-                        command );
-#ifdef TCPLAP_HAS_IGNOREUNMATCHED
-        command.ignoreUnmatched( true );
-#endif
-        command.parse( argc, argv );
+        po::options_description options(
+            "objectperf - Collage object data distribution benchmark tool "
+            + co::Version::getString( ));
 
-        if( remoteArg.isSet( ))
+        std::string remoteString("");
+        bool showHelp(false);
+        bool disableZeroconf(false);
+
+        options.add_options()
+            ( "help,h",       po::bool_switch(&showHelp)->default_value(false),
+              "show help message" )
+            ( "connect,c",    po::value<std::string>(&remoteString),
+              "connect to remote node, implies --disableZeroconf. Format IP[:port][:protocol]" )
+            ( "disableZeroconf,d", po::bool_switch(&disableZeroconf)->default_value(false),
+              "Disable automatic connect using zeroconf" )
+            ( "objectSize,o", po::value<uint64_t>(&objectSize),
+              "object size" )
+            ( "numObjects,n", po::value<uint64_t>(&nObjects),
+              "number of objects" );
+
+        // parse program options
+        po::variables_map variableMap;
+        po::store( po::command_line_parser( argc, argv ).options(
+                       options ).allow_unregistered().run(), variableMap );
+        po::notify( variableMap );
+
+        // evaluate pared arguments
+        if( showHelp )
+        {
+            LBINFO << options << std::endl;
+            co::exit();
+            return EXIT_SUCCESS;
+        }
+
+        if( variableMap.count( "connect" ) == 1)
         {
             remote = new co::ConnectionDescription;
             remote->port = 4242;
-            remote->fromString( remoteArg.getValue( ));
+            remote->fromString( remoteString );
         }
-        useZeroconf = !zcArg.isSet();
 
-        if( sizeArg.isSet( ))
-            objectSize = sizeArg.getValue();
-        if( numArg.isSet( ))
-            nObjects = numArg.getValue();
+        if( disableZeroconf )
+            useZeroconf = false;
     }
-    catch( TCLAP::ArgException& exception )
+    catch( std::exception& exception )
     {
-        LBERROR << "Command line parse error: " << exception.error()
-                << " for argument " << exception.argId() << std::endl;
-
+        LBERROR << "Command line parse error: " << exception.what()
+            << std::endl;
         co::exit();
         return EXIT_FAILURE;
     }
+
 
     // Set up local node
     const uint64_t size = objectSize;
@@ -580,7 +591,7 @@ int main( int argc, char **argv )
                 }
                 else
                 {
-                    NodesIter i = stde::find( nodes, node );
+                    NodesIter i = lunchbox::find( nodes, node );
                     if( i != nodes.end( ))
                         nodes.erase( i );
                 }
