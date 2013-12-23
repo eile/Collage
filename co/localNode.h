@@ -255,11 +255,11 @@ public:
                                NodePtr master,
                                const uint128_t& version = VERSION_OLDEST );
 
-        /** completes client side object mapping */
-        CO_API bool completePushMap( Object* object, const UUID& id,
-                                   const uint128_t& version,
-                                   const uint32_t masterInstanceID,
-                                   const uint32_t changeType, NodePtr master );
+    /** completes client side object mapping */
+    CO_API bool completePushMap( Object* object, const UUID& id,
+                                 const uint128_t& version,
+                                 const uint32_t masterInstanceID,
+                                 const uint32_t changeType, NodePtr master );
 
     /** Convenience wrapper for mapObject(). @version 1.0 */
     f_bool_t mapObject( Object* object, const ObjectVersion& v )
@@ -584,6 +584,7 @@ private:
     void   _handleConnect();
     void   _handleDisconnect();
     bool   _handleData();
+    bool   _enqueueForRead();
     BufferPtr _readHead( ConnectionPtr connection );
     ICommand   _setupCommand( ConnectionPtr, ConstBufferPtr );
     bool      _readTail( ICommand&, BufferPtr, ConnectionPtr );
@@ -600,6 +601,8 @@ private:
 
     void _dispatchCommand( ICommand& command );
     void   _redispatchCommands();
+    CO_API virtual bool defaultDispatch( ICommand& command );
+    CommandQueue* _getReceiveThreadQueue();
 
     /** The command functions. */
     bool _cmdAckRequest( ICommand& command );

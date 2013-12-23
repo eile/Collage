@@ -62,23 +62,116 @@ typedef std::pair< LocalNode::CommandHandler, CommandQueue* > CommandPair;
 typedef stde::hash_map< uint128_t, CommandPair > CommandHash;
 typedef CommandHash::const_iterator CommandHashCIter;
 typedef lunchbox::FutureFunction< bool > FuturebImpl;
+typedef std::map<Connection*, uint16_t> ConnectionUsageMap;
+
+class ThreadSharedData
+{
+public:
+    bool lock( co::ConnectionPtr conn )
+    {
+        lunchbox::ScopedFastWrite mutex( _map );
+        if ( !_usageMap[conn.get()] )
+            return ( _usageMap[conn.get()] = 1 );
+        return false;
+    }
+
+    void unlock( co::ConnectionPtr conn )
+    {
+        lunchbox::ScopedFastWrite mutex( _map );
+        _usageMap[conn.get()] = 0;
+    }
+
+    lunchbox::MTQueue<co::ConnectionPtr> _workerQueue;
+private:
+    ConnectionUsageMap _usageMap;
+    lunchbox::SpinLock _map;
+
+};
 }
 
 namespace detail
 {
-class ReceiverThread : public lunchbox::Thread
+class ReadWorkerThread : public lunchbox::Thread
+{
+public:
+    ReadWorkerThread( ThreadSharedData& data, co::LocalNode* localNode )
+    : _data( data )
+    , _localNode( localNode )
+    {}
+    virtual bool init()
+    {
+        setName( std::string("ReadWorkerThread"));
+        return true;
+    }
+    virtual void run()
+    {
+        while ( true )
+        {
+            co::ConnectionPtr readConnection =  _data._workerQueue.pop();
+            if ( !readConnection )
+                break;
+
+            _localNode->readAndHandleData( readConnection );
+
+
+        }
+        exit();
+    }
+private:
+    ThreadSharedData& _data;
+    co::LocalNode* _localNode;
+};
+
+class ReceiverThread : public Worker
 {
 public:
     ReceiverThread( co::LocalNode* localNode ) : _localNode( localNode ) {}
     virtual bool init()
+    {
+        setName( std::string("R ") + lunchbox::className(_localNode));
+        const int32_t nThreads =
+                Global::getIAttribute( Global::IATTR_READ_THREAD_COUNT );
+        for ( int16_t i = 0; i < nThreads ; ++i )
         {
-            setName( std::string("R ") + lunchbox::className(_localNode));
-            return _localNode->_startCommandThread();
+            ReadWorkerThread* t =
+                    new ReadWorkerThread( _workerThreadData, _localNode );
+            if ( !t->start() )
+            {
+                LBERROR << "worker thread not starting" << std::endl;
+                delete t;
+                return false;
+            }
+            _workerThreads.push_back( t );
         }
+        return _localNode->_startCommandThread();
+    }
+
     virtual void run() { _localNode->_runReceiverThread(); }
+    void handleReceiverThreadCommands() { handleCommands(); }
+    void addReadCommand( co::ConnectionPtr connection )
+    {
+        if ( connection )
+            connection->setRead( true );
+        _workerThreadData._workerQueue.push( connection );
+    }
+
+    void stopWorkerThreads()
+    {
+        for ( uint16_t i = 0; i < _workerThreads.size(); ++i )
+        {
+            addReadCommand( co::ConnectionPtr() );
+        }
+        for ( uint16_t i = 0; i < _workerThreads.size(); ++i )
+        {
+            _workerThreads[i]->join();
+        }
+    }
+
 
 private:
     co::LocalNode* const _localNode;
+    std::vector<ReadWorkerThread*> _workerThreads;
+    ThreadSharedData _workerThreadData;
 };
 
 class CommandThread : public Worker
@@ -160,7 +253,8 @@ public:
     lunchbox::Lock connectLock;
 
     /** The node for each connection. */
-    ConnectionNodeHash connectionNodes; // read and write: recv only
+    // read: read threads and recv thread, write: recv only
+    lunchbox::Lockable< ConnectionNodeHash, lunchbox::SpinLock> connectionNodes;
 
     /** The connected nodes. */
     lunchbox::Lockable< NodeHash, lunchbox::SpinLock > nodes; // r: all, w: recv
@@ -339,7 +433,7 @@ bool LocalNode::listen()
             return false;
         }
 
-        _impl->connectionNodes[ connection ] = this;
+        (*_impl->connectionNodes)[ connection ] = this;
         _impl->incoming.addConnection( connection );
         if( connection->isMulticast( ))
             _addMulticast( this, connection );
@@ -491,19 +585,19 @@ void LocalNode::_cleanup()
     LBVERB << "Clean up stopped node" << std::endl;
     LBASSERTINFO( isClosed(), *this );
 
-    if( !_impl->connectionNodes.empty( ))
-        LBINFO << _impl->connectionNodes.size()
+    if( !_impl->connectionNodes->empty( ))
+        LBINFO << _impl->connectionNodes->size()
                << " open connections during cleanup" << std::endl;
 #ifndef NDEBUG
-    for( ConnectionNodeHashCIter i = _impl->connectionNodes.begin();
-         i != _impl->connectionNodes.end(); ++i )
+    for( ConnectionNodeHashCIter i = _impl->connectionNodes->begin();
+         i != _impl->connectionNodes->end(); ++i )
     {
         NodePtr node = i->second;
         LBINFO << "    " << i->first << " : " << node << std::endl;
     }
 #endif
 
-    _impl->connectionNodes.clear();
+    _impl->connectionNodes->clear();
 
     if( !_impl->nodes->empty( ))
         LBINFO << _impl->nodes->size() << " nodes connected during cleanup"
@@ -529,11 +623,12 @@ void LocalNode::_closeNode( NodePtr node )
 
     if( connection )
     {
-        LBASSERTINFO( _impl->connectionNodes.find( connection ) !=
-                      _impl->connectionNodes.end(), connection );
+        LBASSERTINFO( _impl->connectionNodes->find( connection ) !=
+                      _impl->connectionNodes->end(), connection );
 
         _removeConnection( connection );
-        _impl->connectionNodes.erase( connection );
+        lunchbox::ScopedFastWrite mutex( _impl->connectionNodes );
+        _impl->connectionNodes->erase( connection );
     }
 
     if( mcConnection )
@@ -566,10 +661,10 @@ bool LocalNode::_connectSelf()
 
     // add to connection set
     LBASSERT( connection->getDescription().isValid( ));
-    LBASSERT( _impl->connectionNodes.find( connection ) ==
-              _impl->connectionNodes.end( ));
+    LBASSERT( _impl->connectionNodes->find( connection ) ==
+              _impl->connectionNodes->end( ));
 
-    _impl->connectionNodes[ connection ] = this;
+    (*_impl->connectionNodes)[ connection ] = this;
     _impl->nodes.data[ getNodeID() ] = this;
     _addConnection( connection );
 
@@ -1064,7 +1159,7 @@ uint32_t LocalNode::_connect( NodePtr node, ConnectionPtr connection )
         << getNodeID() << requestID << getType() << serialize();
 
     bool connected = false;
-    if( !waitRequest( requestID, connected, 10000 /*ms*/ ))
+    if( !waitRequest( requestID, connected ))
     {
         LBWARN << "Node connection handshake timeout - " << node
                << " not a Collage node?" << std::endl;
@@ -1176,7 +1271,7 @@ void LocalNode::_runReceiverThread()
                 break;
 
             case ConnectionSet::EVENT_DATA:
-                _handleData();
+                _enqueueForRead();
                 break;
 
             case ConnectionSet::EVENT_DISCONNECT:
@@ -1220,6 +1315,8 @@ void LocalNode::_runReceiverThread()
             result != ConnectionSet::EVENT_SELECT_ERROR )
 
             nErrors = 0;
+
+        _impl->receiverThread->handleReceiverThreadCommands();
     }
 
     if( !_impl->pendingCommands.empty( ))
@@ -1227,20 +1324,23 @@ void LocalNode::_runReceiverThread()
                << " commands pending while leaving command thread" << std::endl;
 
     _impl->pendingCommands.clear();
+
+    _impl->receiverThread->stopWorkerThreads();
+
     LBCHECK( _impl->commandThread->join( ));
 
     ConnectionPtr connection = getConnection();
     PipeConnectionPtr pipe = LBSAFECAST( PipeConnection*, connection.get( ));
     connection = pipe->acceptSync();
     _removeConnection( connection );
-    _impl->connectionNodes.erase( connection );
+    _impl->connectionNodes->erase( connection );
     _disconnect();
 
     const Connections& connections = _impl->incoming.getConnections();
     while( !connections.empty( ))
     {
         connection = connections.back();
-        NodePtr node = _impl->connectionNodes[ connection ];
+        NodePtr node = (*_impl->connectionNodes)[ connection ];
 
         if( node )
             _closeNode( node );
@@ -1272,12 +1372,15 @@ void LocalNode::_handleConnect()
 
 void LocalNode::_handleDisconnect()
 {
-    while( _handleData( )) ; // read remaining data off connection
-
     ConnectionPtr connection = _impl->incoming.getConnection();
-    ConnectionNodeHash::iterator i = _impl->connectionNodes.find( connection );
 
-    if( i != _impl->connectionNodes.end( ))
+    // read remaining data off connection
+    if ( connection )
+        connection->setRead( true );
+    while( readAndHandleData( connection ));
+    ConnectionNodeHash::iterator i = _impl->connectionNodes->find( connection );
+
+    if( i != _impl->connectionNodes->end( ))
     {
         NodePtr node = i->second;
 
@@ -1296,17 +1399,26 @@ void LocalNode::_handleDisconnect()
     _removeConnection( connection );
 }
 
-bool LocalNode::_handleData()
+bool LocalNode::_enqueueForRead()
 {
     _impl->smallBuffers.compact();
     _impl->bigBuffers.compact();
 
-    ConnectionPtr connection = _impl->incoming.getConnection();
+    _impl->receiverThread->addReadCommand( _impl->incoming.getConnection());
+
+    return true;
+}
+
+bool LocalNode::readAndHandleData( ConnectionPtr connection )
+{
     LBASSERT( connection );
 
     BufferPtr buffer = _readHead( connection );
     if( !buffer ) // fluke signal
+    {
+        connection->setRead( false );
         return false;
+    }
 
     ICommand command = _setupCommand( connection, buffer );
     const bool gotCommand = _readTail( command, buffer, connection );
@@ -1318,12 +1430,16 @@ bool LocalNode::_handleData()
 
     if( gotCommand )
     {
-        _dispatchCommand( command );
-        return true;
+        command.setConnection( connection );
+        dispatchCommand( command );
     }
+    else
+        LBERROR << "Incomplete command read: " << command << std::endl;
 
-    LBERROR << "Incomplete command read: " << command << std::endl;
-    return false;
+    connection->setRead( false );
+
+    _impl->incoming.interrupt();
+    return gotCommand;
 }
 
 BufferPtr LocalNode::_readHead( ConnectionPtr connection )
@@ -1352,9 +1468,13 @@ ICommand LocalNode::_setupCommand( ConnectionPtr connection,
                                    ConstBufferPtr buffer )
 {
     NodePtr node;
-    ConnectionNodeHashCIter i = _impl->connectionNodes.find( connection );
-    if( i != _impl->connectionNodes.end( ))
-        node = i->second;
+    {
+        lunchbox::ScopedFastRead mutex( _impl->connectionNodes );
+
+        ConnectionNodeHashCIter i = _impl->connectionNodes->find( connection );
+        if( i != _impl->connectionNodes->end( ))
+            node = i->second;
+    }
     LBASSERTINFO( !node || // unconnected node
                   *(node->getConnection()) == *connection || // correct UC conn
                   connection->isMulticast(), lunchbox::className( node ));
@@ -1437,17 +1557,18 @@ BufferPtr LocalNode::allocBuffer( const uint64_t size )
     return buffer;
 }
 
-void LocalNode::_dispatchCommand( ICommand& command )
+bool LocalNode::_dispatchCommand( ICommand& command )
 {
     LBASSERTINFO( command.isValid(), command );
 
-    if( dispatchCommand( command ))
+    if( _impl->objectStore->dispatchObjectCommand( command ))
         _redispatchCommands();
     else
     {
         _redispatchCommands();
         _impl->pendingCommands.push_back( command );
     }
+    return true;
 }
 
 bool LocalNode::dispatchCommand( ICommand& command )
@@ -1463,7 +1584,11 @@ bool LocalNode::dispatchCommand( ICommand& command )
             return true;
 
         case COMMANDTYPE_OBJECT:
-            return _impl->objectStore->dispatchObjectCommand( command );
+            // queue command to default command queue to avoid races
+            command.setDispatchFunction( CommandFunc<co::LocalNode>(
+                                         this, &LocalNode::_dispatchCommand ));
+            defaultDispatch( command );
+            return true;
 
         default:
             LBABORT( "Unknown command type " << type << " for " << command );
@@ -1484,7 +1609,7 @@ void LocalNode::_redispatchCommands()
             ICommand& command = *i;
             LBASSERT( command.isValid( ));
 
-            if( dispatchCommand( command ))
+            if( _impl->objectStore->dispatchObjectCommand( command ))
             {
                 _impl->pendingCommands.erase( i );
                 changes = true;
@@ -1573,7 +1698,8 @@ bool LocalNode::_cmdStopRcv( ICommand& command )
     _setClosing(); // causes rcv thread exit
 
     command.setCommand( CMD_NODE_STOP_CMD ); // causes cmd thread exit
-    _dispatchCommand( command );
+    dispatchCommand( command );
+    _redispatchCommands();
     return true;
 }
 
@@ -1607,11 +1733,11 @@ bool LocalNode::_cmdConnect( ICommand& command )
     LBVERB << "handle connect " << command << " req " << requestID << " type "
            << nodeType << " data " << data << std::endl;
 
-    ConnectionPtr connection = _impl->incoming.getConnection();
+    ConnectionPtr connection = command.getConnection();
 
     LBASSERT( nodeID != getNodeID() );
-    LBASSERT( _impl->connectionNodes.find( connection ) ==
-              _impl->connectionNodes.end( ));
+    LBASSERT( _impl->connectionNodes->find( connection ) ==
+              _impl->connectionNodes->end( ));
 
     NodePtr peer;
 #ifdef COLLAGE_BIGENDIAN
@@ -1668,7 +1794,10 @@ bool LocalNode::_cmdConnect( ICommand& command )
     LBASSERT( peer->getType() == nodeType );
 
     peer->_connect( connection );
-    _impl->connectionNodes[ connection ] = peer;
+    {
+        lunchbox::ScopedFastWrite mutex( _impl->connectionNodes );
+        (*_impl->connectionNodes)[ connection ] = peer;
+    }
     {
         lunchbox::ScopedFastWrite mutex( _impl->nodes );
         _impl->nodes.data[ peer->getNodeID() ] = peer;
@@ -1688,9 +1817,9 @@ bool LocalNode::_cmdConnectReply( ICommand& command )
     LBASSERT( !command.getNode( ));
     LBASSERT( _impl->inReceiverThread( ));
 
-    ConnectionPtr connection = _impl->incoming.getConnection();
-    LBASSERT( _impl->connectionNodes.find( connection ) ==
-              _impl->connectionNodes.end( ));
+    ConnectionPtr connection = command.getConnection();
+    LBASSERT( _impl->connectionNodes->find( connection ) ==
+              _impl->connectionNodes->end( ));
 
     const NodeID& nodeID = command.get< NodeID >();
     const uint32_t requestID = command.get< uint32_t >();
@@ -1759,7 +1888,10 @@ bool LocalNode::_cmdConnectReply( ICommand& command )
     LBASSERT( peer->getNodeID() == nodeID );
 
     peer->_connect( connection );
-    _impl->connectionNodes[ connection ] = peer;
+    {
+        lunchbox::ScopedFastWrite mutex( _impl->connectionNodes );
+        (*_impl->connectionNodes)[ connection ] = peer;
+    }
     {
         lunchbox::ScopedFastWrite mutex( _impl->nodes );
         _impl->nodes.data[ peer->getNodeID() ] = peer;
@@ -1802,10 +1934,10 @@ bool LocalNode::_cmdID( ICommand& command )
 
     LBINFO << "handle ID " << command << " node " << nodeID << std::endl;
 
-    ConnectionPtr connection = _impl->incoming.getConnection();
+    ConnectionPtr connection = command.getConnection();
     LBASSERT( connection->isMulticast( ));
-    LBASSERT( _impl->connectionNodes.find( connection ) ==
-              _impl->connectionNodes.end( ));
+    LBASSERT( _impl->connectionNodes->find( connection ) ==
+              _impl->connectionNodes->end( ));
 
     NodePtr node;
     if( nodeID == getNodeID() ) // 'self' multicast connection
@@ -1839,7 +1971,10 @@ bool LocalNode::_cmdID( ICommand& command )
                   node->getNodeID() << "!=" << nodeID );
 
     _connectMulticast( node, connection );
-    _impl->connectionNodes[ connection ] = node;
+    {
+        lunchbox::ScopedFastWrite mutex( _impl->connectionNodes );
+        (*_impl->connectionNodes)[ connection ] = node;
+    }
     LBINFO << "Added multicast connection " << connection << " from " << nodeID
            << " to " << getNodeID() << std::endl;
     return true;
@@ -2002,7 +2137,10 @@ bool LocalNode::_cmdAddListener( ICommand& command )
     connection->unref();
     LBASSERT( connection );
 
-    _impl->connectionNodes[ connection ] = this;
+    {
+        lunchbox::ScopedFastWrite mutex( _impl->connectionNodes );
+        (*_impl->connectionNodes)[ connection ] = this;
+    }
     _impl->incoming.addConnection( connection );
     if( connection->isMulticast( ))
         _addMulticast( this, connection );
@@ -2034,9 +2172,12 @@ bool LocalNode::_cmdRemoveListener( ICommand& command )
         _removeMulticast( connection );
 
     _impl->incoming.removeConnection( connection );
-    LBASSERT( _impl->connectionNodes.find( connection ) !=
-              _impl->connectionNodes.end( ));
-    _impl->connectionNodes.erase( connection );
+    LBASSERT( _impl->connectionNodes->find( connection ) !=
+              _impl->connectionNodes->end( ));
+    {
+        lunchbox::ScopedFastWrite mutex( _impl->connectionNodes );
+        _impl->connectionNodes->erase( connection );
+    }
     serveRequest( requestID );
     return true;
 }
@@ -2101,6 +2242,18 @@ bool LocalNode::_cmdAddConnection( ICommand& command )
 
     _addConnection( connection );
     return true;
+}
+
+bool LocalNode::defaultDispatch( ICommand& command )
+{
+    _getReceiveThreadQueue()->push( command );
+    _impl->incoming.interrupt();
+    return true;
+}
+
+CommandQueue* LocalNode::_getReceiveThreadQueue()
+{
+    return _impl->receiverThread->getWorkerQueue();
 }
 
 }

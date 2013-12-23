@@ -28,6 +28,8 @@
 #include "socketConnection.h"
 #include "rspConnection.h"
 
+#include <lunchbox/types.h>
+
 #ifdef _WIN32
 #  include "namedPipeConnection.h"
 #endif
@@ -84,6 +86,8 @@ public:
     BufferPtr buffer; //!< Current async read buffer
     uint64_t bytes; //!< Current read request size
 
+    lunchbox::a_int32_t _currentlyRead;
+
     /** The listeners on state changes */
     ConnectionListeners listeners;
 
@@ -91,6 +95,7 @@ public:
             : state( co::Connection::STATE_CLOSED )
             , description( new ConnectionDescription )
             , bytes( 0 )
+            , _currentlyRead( 0 )
     {
         description->type = CONNECTIONTYPE_NONE;
     }
@@ -252,7 +257,8 @@ void Connection::recvNB( BufferPtr buffer, const uint64_t bytes )
 
 bool Connection::recvSync( BufferPtr& outBuffer, const bool block )
 {
-    LBASSERT( _impl->buffer );
+    if(! _impl->buffer )
+        return false; // the connection might have been closeds
 
     // reset async IO data
     outBuffer = _impl->buffer;
@@ -438,6 +444,16 @@ ConstConnectionDescriptionPtr Connection::getDescription() const
 ConnectionDescriptionPtr Connection::_getDescription()
 {
     return _impl->description;
+}
+
+bool Connection::isRead()
+{
+    return _impl->_currentlyRead == 1;
+}
+
+void Connection::setRead( bool flag )
+{
+    _impl->_currentlyRead = flag ? 1 : 0;
 }
 
 std::ostream& operator << ( std::ostream& os, const Connection& connection )

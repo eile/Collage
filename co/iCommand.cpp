@@ -39,6 +39,7 @@ public:
         , type( COMMANDTYPE_INVALID )
         , cmd( CMD_INVALID )
         , consumed( false )
+        , connection()
     {}
 
     ICommand( LocalNodePtr local_, NodePtr remote_, ConstBufferPtr buffer_ )
@@ -50,10 +51,25 @@ public:
         , type( COMMANDTYPE_INVALID )
         , cmd( CMD_INVALID )
         , consumed( false )
+        , connection()
     {}
 
+    ~ICommand()
+    {
+        if ( buffer )
+        {
+            lunchbox::ScopedFastWrite mutex( buffer->getLock());
+            buffer = 0;
+        }
+    }
+    
     void clear()
     {
+        if ( buffer )
+        {
+            lunchbox::ScopedFastWrite mutex( buffer->getLock());
+            buffer = 0;
+        }
         *this = ICommand();
     }
 
@@ -65,6 +81,7 @@ public:
     uint32_t type;
     uint32_t cmd;
     bool consumed;
+    co::ConnectionPtr connection;
 };
 } // detail namespace
 
@@ -212,6 +229,16 @@ bool ICommand::operator()()
     Dispatcher::Func func = _impl->func;
     _impl->func.clear();
     return func( *this );
+}
+
+void ICommand::setConnection( co::ConnectionPtr connection )
+{
+    _impl->connection = connection;
+}
+
+co::ConnectionPtr ICommand::getConnection()
+{
+    return _impl->connection;
 }
 
 std::ostream& operator << ( std::ostream& os, const ICommand& command )

@@ -452,8 +452,6 @@ void SocketConnection::readNB( void* buffer, const uint64_t bytes )
 int64_t SocketConnection::readSync( void* buffer, const uint64_t bytes,
                                     const bool block )
 {
-    LB_TS_THREAD( _recvThread );
-
     if( _readFD == INVALID_SOCKET )
     {
         LBERROR << "Invalid read handle" << std::endl;
@@ -530,8 +528,10 @@ int64_t SocketConnection::write( const void* buffer, const uint64_t bytes )
 
     if( WSAGetLastError() != WSA_IO_PENDING )
           return -1;
-
-    const DWORD err = WaitForSingleObject( _overlappedWrite.hEvent, INFINITE );
+	
+	const unsigned timeout = Global::getTimeout() == LB_TIMEOUT_INDEFINITE ?
+													 LB_TIMEOUT_INDEFINITE : Global::getTimeout();
+	const DWORD err = WaitForSingleObject( _overlappedWrite.hEvent, timeout );
     switch( err )
     {
       case WAIT_FAILED:
@@ -618,13 +618,15 @@ void SocketConnection::_tuneSocket( const Socket fd )
     setsockopt( fd, SOL_SOCKET, SO_REUSEADDR,
                 reinterpret_cast<const char*>( &on ), sizeof( on ));
 
-#ifdef _WIN32
-    const int size = 128768;
-    setsockopt( fd, SOL_SOCKET, SO_RCVBUF,
-                reinterpret_cast<const char*>( &size ), sizeof( size ));
-    setsockopt( fd, SOL_SOCKET, SO_SNDBUF,
-                reinterpret_cast<const char*>( &size ), sizeof( size ));
-#endif
+    const int rcv = Global::getIAttribute( Global::IATTR_TCP_RECV_BUFFER_SIZE );
+    const int snd = Global::getIAttribute( Global::IATTR_TCP_SEND_BUFFER_SIZE );
+
+    if ( rcv != 0 )
+        setsockopt( fd, SOL_SOCKET, SO_RCVBUF,
+                reinterpret_cast<const char*>( &rcv ), sizeof( rcv ));
+    if ( snd != 0 )
+        setsockopt( fd, SOL_SOCKET, SO_SNDBUF,
+                reinterpret_cast<const char*>( &snd ), sizeof( snd ));
 }
 
 //----------------------------------------------------------------------
