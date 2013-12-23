@@ -101,7 +101,7 @@ namespace detail
 class ReadWorkerThread : public lunchbox::Thread
 {
 public:
-    ReadWorkerThread( ThreadSharedData& data, co::LocalNode* localNode ) 
+    ReadWorkerThread( ThreadSharedData& data, co::LocalNode* localNode )
     : _data( data )
     , _localNode( localNode )
     {}
@@ -134,24 +134,25 @@ class ReceiverThread : public Worker
 public:
     ReceiverThread( co::LocalNode* localNode ) : _localNode( localNode ) {}
     virtual bool init()
+    {
+        setName( std::string("R ") + lunchbox::className(_localNode));
+        const int32_t nThreads =
+                Global::getIAttribute( Global::IATTR_READ_THREAD_COUNT );
+        for ( int16_t i = 0; i < nThreads ; ++i )
         {
-            setName( std::string("R ") + lunchbox::className(_localNode));
-            const int32_t nThreads = 
-                    Global::getIAttribute( Global::IATTR_READ_THREAD_COUNT );
-            for ( int16_t i = 0; i < nThreads ; ++i )
+            ReadWorkerThread* t =
+                    new ReadWorkerThread( _workerThreadData, _localNode );
+            if ( !t->start() )
             {
-                ReadWorkerThread* t = 
-                        new ReadWorkerThread( _workerThreadData, _localNode );
-                if ( !t->start() )
-                {
-                    LBERROR << "worker thread not starting" << std::endl;
-                    delete t;
-                    return false;
-                }
-                _workerThreads.push_back( t );
+                LBERROR << "worker thread not starting" << std::endl;
+                delete t;
+                return false;
             }
-            return _localNode->_startCommandThread();
+            _workerThreads.push_back( t );
         }
+        return _localNode->_startCommandThread();
+    }
+
     virtual void run() { _localNode->_runReceiverThread(); }
     void handleReceiverThreadCommands() { handleCommands(); }
     void addReadCommand( co::ConnectionPtr connection )
@@ -217,26 +218,25 @@ public:
             , receiverThread( 0 )
             , commandThread( 0 )
             , service( "_collage._tcp" )
-        {
-        }
+    {}
 
     ~LocalNode()
-        {
-            LBASSERT( incoming.isEmpty( ));
-            LBASSERT( connectionNodes->empty( ));
-            LBASSERT( pendingCommands.empty( ));
-            LBASSERT( nodes->empty( ));
+    {
+        LBASSERT( incoming.isEmpty( ));
+        LBASSERT( connectionNodes->empty( ));
+        LBASSERT( pendingCommands.empty( ));
+        LBASSERT( nodes->empty( ));
 
-            delete objectStore;
-            objectStore = 0;
-            LBASSERT( !commandThread->isRunning( ));
-            delete commandThread;
-            commandThread = 0;
+        delete objectStore;
+        objectStore = 0;
+        LBASSERT( !commandThread->isRunning( ));
+        delete commandThread;
+        commandThread = 0;
 
-            LBASSERT( !receiverThread->isRunning( ));
-            delete receiverThread;
-            receiverThread = 0;
-        }
+        LBASSERT( !receiverThread->isRunning( ));
+        delete receiverThread;
+        receiverThread = 0;
+    }
 
     bool inReceiverThread() const { return receiverThread->isCurrent(); }
 
@@ -261,7 +261,7 @@ public:
 
     /** The node for each connection. */
     // read: read threads and recv thread, write: recv only
-    lunchbox::Lockable< ConnectionNodeHash, lunchbox::SpinLock> connectionNodes; 
+    lunchbox::Lockable< ConnectionNodeHash, lunchbox::SpinLock> connectionNodes;
 
     /** The connected nodes. */
     lunchbox::Lockable< NodeHash, lunchbox::SpinLock > nodes; // r: all, w: recv
@@ -1271,7 +1271,7 @@ void LocalNode::_runReceiverThread()
 
             nErrors = 0;
 
-        _impl->receiverThread->handleReceiverThreadCommands();        
+        _impl->receiverThread->handleReceiverThreadCommands();
     }
 
     if( !_impl->pendingCommands.empty( ))
@@ -1279,7 +1279,7 @@ void LocalNode::_runReceiverThread()
                << " commands pending while leaving command thread" << std::endl;
 
     _impl->pendingCommands.clear();
-    
+
     _impl->receiverThread->stopWorkerThreads();
 
     LBCHECK( _impl->commandThread->join( ));
@@ -1540,7 +1540,7 @@ bool LocalNode::dispatchCommand( ICommand& command )
 
         case COMMANDTYPE_OBJECT:
             // queue command to default command queue to avoid races
-            command.setDispatchFunction( CommandFunc<co::LocalNode>( 
+            command.setDispatchFunction( CommandFunc<co::LocalNode>(
                                          this, &LocalNode::_dispatchCommand ));
             defaultDispatch( command );
             return true;
