@@ -32,7 +32,13 @@
 
 namespace co
 {
-namespace detail { class LocalNode; class ReceiverThread; class CommandThread; }
+namespace detail
+{
+class LocalNode;
+class ReadThread;
+class ReceiverThread;
+class CommandThread;
+}
 
 /**
  * Node specialization for a local node.
@@ -583,11 +589,14 @@ private:
     void _runReceiverThread();
     void   _handleConnect();
     void   _handleDisconnect();
-    bool   _handleData();
-    bool   _enqueueForRead();
+    bool   _queueRead();
+
+    friend class detail::ReadThread;
+    bool   _handleData( co::ConnectionPtr connection );
     BufferPtr _readHead( ConnectionPtr connection );
     ICommand   _setupCommand( ConnectionPtr, ConstBufferPtr );
     bool      _readTail( ICommand&, BufferPtr, ConnectionPtr );
+
     void   _initService();
     void   _exitService();
 
@@ -599,7 +608,7 @@ private:
             registerCommand( command, func, destinationQueue );
         }
 
-    void _dispatchCommand( ICommand& command );
+    bool _dispatchCommand( ICommand& command );
     void   _redispatchCommands();
     CO_API virtual bool defaultDispatch( ICommand& command );
     CommandQueue* _getReceiveThreadQueue();

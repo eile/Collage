@@ -91,16 +91,16 @@ private:
 
 namespace detail
 {
-class ReadWorkerThread : public lunchbox::Thread
+class ReadThread : public lunchbox::Thread
 {
 public:
-    ReadWorkerThread( ThreadSharedData& data, co::LocalNode* localNode )
+    ReadThread( ThreadSharedData& data, co::LocalNode* localNode )
     : _data( data )
     , _localNode( localNode )
     {}
     virtual bool init()
     {
-        setName( std::string("ReadWorkerThread"));
+        setName( std::string("ReadThread"));
         return true;
     }
     virtual void run()
@@ -111,9 +111,7 @@ public:
             if ( !readConnection )
                 break;
 
-            _localNode->readAndHandleData( readConnection );
-
-
+            _localNode->_handleData( readConnection );
         }
         exit();
     }
@@ -133,8 +131,7 @@ public:
                 Global::getIAttribute( Global::IATTR_READ_THREAD_COUNT );
         for ( int16_t i = 0; i < nThreads ; ++i )
         {
-            ReadWorkerThread* t =
-                    new ReadWorkerThread( _workerThreadData, _localNode );
+            ReadThread* t = new ReadThread( _workerThreadData, _localNode );
             if ( !t->start() )
             {
                 LBERROR << "worker thread not starting" << std::endl;
@@ -170,7 +167,7 @@ public:
 
 private:
     co::LocalNode* const _localNode;
-    std::vector<ReadWorkerThread*> _workerThreads;
+    std::vector<ReadThread*> _workerThreads;
     ThreadSharedData _workerThreadData;
 };
 
@@ -216,7 +213,7 @@ public:
     ~LocalNode()
     {
         LBASSERT( incoming.isEmpty( ));
-        LBASSERT( connectionNodes.empty( ));
+        LBASSERT( connectionNodes->empty( ));
         LBASSERT( pendingCommands.empty( ));
         LBASSERT( nodes->empty( ));
 
@@ -634,7 +631,7 @@ void LocalNode::_closeNode( NodePtr node )
     if( mcConnection )
     {
         _removeConnection( mcConnection );
-        _impl->connectionNodes.erase( mcConnection );
+        _impl->connectionNodes->erase( mcConnection );
     }
 
     _impl->objectStore->removeInstanceData( node->getNodeID( ));
@@ -991,8 +988,8 @@ NodePtr LocalNode::_connect( const NodeID& nodeID, NodePtr peer )
 
     lunchbox::RequestFuture< void* > request = registerRequest< void* >();
     peer->send( CMD_NODE_GET_NODE_DATA ) << nodeID << request;
-    void* result = request.get();
 
+    void* result = request.get();
     if( !result )
     {
         LBINFO << "Node " << nodeID << " not found on " << peer->getNodeID()
@@ -1271,7 +1268,7 @@ void LocalNode::_runReceiverThread()
                 break;
 
             case ConnectionSet::EVENT_DATA:
-                _enqueueForRead();
+                _queueRead();
                 break;
 
             case ConnectionSet::EVENT_DISCONNECT:
@@ -1324,7 +1321,6 @@ void LocalNode::_runReceiverThread()
                << " commands pending while leaving command thread" << std::endl;
 
     _impl->pendingCommands.clear();
-
     _impl->receiverThread->stopWorkerThreads();
 
     LBCHECK( _impl->commandThread->join( ));
@@ -1372,14 +1368,14 @@ void LocalNode::_handleConnect()
 
 void LocalNode::_handleDisconnect()
 {
-    ConnectionPtr connection = _impl->incoming.getConnection();
 
     // read remaining data off connection
+    ConnectionPtr connection = _impl->incoming.getConnection();
     if ( connection )
         connection->setRead( true );
-    while( readAndHandleData( connection ));
-    ConnectionNodeHash::iterator i = _impl->connectionNodes->find( connection );
+    while( _handleData( connection )) /*NOP*/ ;
 
+    ConnectionNodeHash::iterator i = _impl->connectionNodes->find( connection );
     if( i != _impl->connectionNodes->end( ))
     {
         NodePtr node = i->second;
@@ -1399,17 +1395,15 @@ void LocalNode::_handleDisconnect()
     _removeConnection( connection );
 }
 
-bool LocalNode::_enqueueForRead()
+bool LocalNode::_queueRead()
 {
     _impl->smallBuffers.compact();
     _impl->bigBuffers.compact();
-
     _impl->receiverThread->addReadCommand( _impl->incoming.getConnection());
-
     return true;
 }
 
-bool LocalNode::readAndHandleData( ConnectionPtr connection )
+bool LocalNode::_handleData( ConnectionPtr connection )
 {
     LBASSERT( connection );
 
