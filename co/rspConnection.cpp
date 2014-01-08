@@ -1646,7 +1646,7 @@ void RSPConnection::_sendCountNode()
     DatagramNode count = { COUNTNODE, CO_RSP_PROTOCOL_VERSION, _id,
                            uint16_t( _children.size( )) };
     count.byteswap();
-    _write->send( boost::asio::buffer( &count, sizeof( count )) );
+    _write->send( boost::asio::buffer( &count, sizeof( count )));
 }
 
 void RSPConnection::_sendSimpleDatagram( const DatagramType type,
@@ -1655,7 +1655,7 @@ void RSPConnection::_sendSimpleDatagram( const DatagramType type,
     DatagramNode simple = { uint16_t( type ), CO_RSP_PROTOCOL_VERSION, id,
                             _sequence };
     simple.byteswap();
-    _write->send( boost::asio::buffer( &simple, sizeof( simple )) );
+    _write->send( boost::asio::buffer( &simple, sizeof( simple )));
 }
 
 void RSPConnection::_sendAck( const uint16_t writerID,
@@ -1669,7 +1669,7 @@ void RSPConnection::_sendAck( const uint16_t writerID,
     LBLOG( LOG_RSP ) << "send ack " << sequence << std::endl;
     DatagramAck ack = { ACK, _id, writerID, sequence };
     ack.byteswap();
-    _write->send( boost::asio::buffer( &ack, sizeof( ack )) );
+    _write->send( boost::asio::buffer( &ack, sizeof( ack )));
 }
 
 void RSPConnection::_sendNack( const uint16_t writerID, const Nack* nacks,
@@ -1707,7 +1707,7 @@ void RSPConnection::_sendAckRequest()
                      << std::endl;
     DatagramAckRequest ackRequest = { ACKREQ, _id, uint16_t( _sequence - 1 ) };
     ackRequest.byteswap();
-    _write->send( boost::asio::buffer( &ackRequest, sizeof( DatagramAckRequest )) );
+    _write->send( boost::asio::buffer( &ackRequest, sizeof( DatagramAckRequest )));
 }
 
 std::ostream& operator << ( std::ostream& os,

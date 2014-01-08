@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2006-2012, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2006-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -50,8 +50,6 @@ namespace detail { class BufferCache; }
 
         /** Flush all allocated buffers. */
         void flush();
-
-        lunchbox::SpinLock& getLock() const;
 
     private:
         detail::BufferCache* const _impl;

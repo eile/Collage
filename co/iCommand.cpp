@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2006-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2006-2014`, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -39,7 +39,6 @@ public:
         , type( COMMANDTYPE_INVALID )
         , cmd( CMD_INVALID )
         , consumed( false )
-        , connection()
     {}
 
     ICommand( LocalNodePtr local_, NodePtr remote_, ConstBufferPtr buffer_ )
@@ -51,25 +50,10 @@ public:
         , type( COMMANDTYPE_INVALID )
         , cmd( CMD_INVALID )
         , consumed( false )
-        , connection()
     {}
 
-    ~ICommand()
-    {
-        if ( buffer )
-        {
-            lunchbox::ScopedFastWrite mutex( buffer->getLock());
-            buffer = 0;
-        }
-    }
-    
     void clear()
     {
-        if ( buffer )
-        {
-            lunchbox::ScopedFastWrite mutex( buffer->getLock());
-            buffer = 0;
-        }
         *this = ICommand();
     }
 

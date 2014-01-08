@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2012-2013, Stefan.Eilemann@epfl.ch
+ *               2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -51,8 +51,6 @@ public:
 
     /** @return true if the buffer is no longer in use. @version 1.0 */
     bool isFree() const { return getRefCount() == 0; }
-
-    lunchbox::SpinLock& getLock() const;
 
 private:
     detail::Buffer* const _impl;

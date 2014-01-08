@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2012-2013, Stefan.Eilemann@epfl.ch
+ *               2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -52,11 +52,6 @@ void Buffer::notifyFree()
 {
     if( _impl->listener )
         _impl->listener->notifyFree( this );
-}
-
-lunchbox::SpinLock& Buffer::getLock() const
-{
-    return _impl->listener->getLock();
 }
 
 std::ostream& operator << ( std::ostream& os, const Buffer& buffer )

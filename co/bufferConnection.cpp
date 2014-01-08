@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2012, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -46,16 +46,6 @@ BufferConnection::~BufferConnection()
     if( !_impl->buffer.isEmpty( ))
         LBWARN << "Deleting BufferConnection with buffered data" << std::endl;
     delete _impl;
-}
-
-const lunchbox::Bufferb& BufferConnection::getBuffer() const
-{
-    return _impl->buffer;
-}
-
-lunchbox::Bufferb& BufferConnection::getBuffer()
-{
-    return _impl->buffer;
 }
 
 uint64_t BufferConnection::getSize() const

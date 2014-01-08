@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2006-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2006-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -81,7 +81,7 @@ public:
 
     void flush()
     {
-        lunchbox::ScopedFastWrite lock( _buffer );
+        lunchbox::ScopedFastWrite lock( _lock );
         for( DataCIter i = _cache.begin(); i != _cache.end(); ++i )
         {
             co::Buffer* buffer = *i;
@@ -100,7 +100,7 @@ public:
 
     BufferPtr newBuffer()
     {
-        lunchbox::ScopedFastWrite lock( _buffer );
+        lunchbox::ScopedFastWrite lock( _lock );
         const uint32_t cacheSize = uint32_t( _cache.size( ));
         LBASSERTINFO( size_t( _free ) <= cacheSize,
                       size_t( _free ) << " > " << cacheSize );
@@ -162,7 +162,7 @@ public:
 
     void compact()
     {
-        lunchbox::ScopedFastWrite lock( _buffer );
+        lunchbox::ScopedFastWrite lock( _lock );
         if( _free <= _maxFree )
             return;
 
@@ -174,7 +174,6 @@ public:
         while( i != _cache.end( ))
         {
             const co::Buffer* cmd = *i;
-            _delLock.set();
             if( cmd->isFree( ))
             {
                 LBASSERT( _free > 0 );
@@ -182,29 +181,19 @@ public:
                 ++_frees;
 #  endif
                 delete cmd;
-                _delLock.unset();
                 i = _cache.erase( i );
 
                 if( --_free <= target )
                     break;
             }
             else
-            {
-                _delLock.unset();
                 ++i;
-            }
         }
 
         const int32_t num = int32_t( _cache.size() >> _maxFreeShift );
         _maxFree = LB_MAX( _minFree, num );
         _position = (i == _cache.end( )) ? _cache.begin() : i;
     }
-
-    lunchbox::SpinLock& getLock() const
-    {
-        return _delLock;
-    }
-
 
 private:
     friend std::ostream& co::operator << (std::ostream&,const co::BufferCache&);
@@ -216,8 +205,7 @@ private:
     const int32_t _minFree;
     int32_t _maxFree; //!< The maximum number of free items
 
-    lunchbox::SpinLock _buffer;
-    mutable lunchbox::SpinLock _delLock;
+    lunchbox::SpinLock _lock;
 
     virtual void notifyFree( co::Buffer* )
     {

@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2012, Stefan.Eilemann@epfl.ch
+/* Copyright (c) 2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -29,8 +29,6 @@ namespace co
         virtual ~BufferListener() {}
 
         virtual void notifyFree( Buffer* ) = 0; //!< No references left
-
-        virtual lunchbox::SpinLock& getLock() const = 0;
     };
 }
 
