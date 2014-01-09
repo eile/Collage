@@ -50,7 +50,9 @@ public:
     CO_API virtual ~Buffer();
 
     /** @return true if the buffer is no longer in use. @version 1.0 */
-    bool isFree() const { return getRefCount() == 0; }
+    CO_API bool isFree() const;
+
+    void setUsed(); //!< @internal
 
 private:
     detail::Buffer* const _impl;

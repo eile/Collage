@@ -140,6 +140,7 @@ public:
                 }
 #endif
                 --_free;
+                buffer->setUsed();
                 return buffer;
             }
         }
@@ -157,6 +158,7 @@ public:
         ++_misses;
         _allocs += add;
 #endif
+        _cache.back()->setUsed();
         return _cache.back();
     }
 
@@ -173,14 +175,14 @@ public:
         Data::iterator i = _cache.begin();
         while( i != _cache.end( ))
         {
-            const co::Buffer* cmd = *i;
-            if( cmd->isFree( ))
+            const co::Buffer* buffer = *i;
+            if( buffer->isFree( ))
             {
                 LBASSERT( _free > 0 );
 #  ifdef PROFILE
                 ++_frees;
 #  endif
-                delete cmd;
+                delete buffer;
                 i = _cache.erase( i );
 
                 if( --_free <= target )
