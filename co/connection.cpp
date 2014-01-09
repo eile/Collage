@@ -258,7 +258,7 @@ void Connection::recvNB( BufferPtr buffer, const uint64_t bytes )
 bool Connection::recvSync( BufferPtr& outBuffer, const bool block )
 {
     if(! _impl->buffer )
-        return false; // the connection might have been closeds
+        return false; // the connection might have been closed
 
     // reset async IO data
     outBuffer = _impl->buffer;
@@ -451,9 +451,9 @@ bool Connection::isRead()
     return _impl->_currentlyRead == 1;
 }
 
-void Connection::setRead( bool flag )
+void Connection::setRead( const bool reading )
 {
-    _impl->_currentlyRead = flag ? 1 : 0;
+    _impl->_currentlyRead = reading;
 }
 
 std::ostream& operator << ( std::ostream& os, const Connection& connection )

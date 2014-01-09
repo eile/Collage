@@ -243,7 +243,7 @@ namespace detail { class Connection; }
         virtual Notifier getNotifier() const = 0;
 
         bool isRead();
-        void setRead( bool flag );
+        void setRead( const bool reading );
 
     protected:
         /** Construct a new connection. */
