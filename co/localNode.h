@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2005-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2005-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -57,9 +57,6 @@ public:
 
     /** Construct a new local node of the given type. @version 1.0 */
     CO_API LocalNode( const uint32_t type = co::NODETYPE_NODE );
-
-    /** Destruct this local node. @version 1.0 */
-    CO_API virtual ~LocalNode();
 
     /**
      * @name State Changes
@@ -298,7 +295,7 @@ public:
      */
     CO_API f_bool_t syncObject( Object* object, NodePtr master,
                                 const UUID& id,
-                                const uint32_t instanceID=CO_INSTANCE_ALL );
+                                const uint32_t instanceID = CO_INSTANCE_ALL );
     /**
      * Unmap a mapped object.
      *
@@ -514,6 +511,9 @@ public:
     CO_API void setAffinity( const int32_t affinity );
 
 protected:
+    /** Destruct this local node. @version 1.0 */
+    CO_API virtual ~LocalNode();
+
     /** @internal
      * Connect a node proxy to this node.
      *

@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2010-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2010-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -35,10 +35,10 @@ static co::ConnectionType types[] =
 {
     co::CONNECTIONTYPE_TCPIP,
     co::CONNECTIONTYPE_PIPE,
-    co::CONNECTIONTYPE_RSP,
-#ifdef WIN32
     co::CONNECTIONTYPE_NAMEDPIPE,
-#endif
+    co::CONNECTIONTYPE_RSP,
+    co::CONNECTIONTYPE_RDMA,
+//    co::CONNECTIONTYPE_UDT,
     co::CONNECTIONTYPE_NONE // must be last
 };
 
@@ -92,35 +92,45 @@ int main( int argc, char **argv )
 
         co::ConnectionPtr listener = co::Connection::create( desc );
         if( !listener )
+        {
+            std::cout << desc->type << ": not supported" << std::endl;
             continue;
+        }
 
         co::ConnectionPtr writer;
         co::ConnectionPtr reader;
 
         switch( desc->type ) // different connections, different semantics...
         {
-            case co::CONNECTIONTYPE_PIPE:
-                writer = listener;
-                TEST( writer->connect( ));
-                reader = writer->acceptSync();
-                break;
+        case co::CONNECTIONTYPE_PIPE:
+            writer = listener;
+            TEST( writer->connect( ));
+            reader = writer->acceptSync();
+            break;
 
-            case co::CONNECTIONTYPE_RSP:
-                TESTINFO( listener->listen(), desc );
-                listener->acceptNB();
+        case co::CONNECTIONTYPE_RSP:
+            TESTINFO( listener->listen(), desc );
+            listener->acceptNB();
 
-                writer = listener;
-                reader = listener->acceptSync();
-                break;
-            default:
-                TESTINFO( listener->listen(), desc );
-                listener->acceptNB();
+            writer = listener;
+            reader = listener->acceptSync();
+            break;
 
-                writer = co::Connection::create( desc );
-                TEST( writer->connect( ));
+        default:
+        {
+            const bool listening = listener->listen();
+            if( !listening && desc->type == co::CONNECTIONTYPE_RDMA )
+                continue; // No local IB adapter up
 
-                reader = listener->acceptSync();
-                break;
+            TESTINFO( listening, desc );
+            listener->acceptNB();
+
+            writer = co::Connection::create( desc );
+            TEST( writer->connect( ));
+
+            reader = listener->acceptSync();
+            break;
+        }
         }
         TEST( writer );
         TEST( reader );
