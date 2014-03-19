@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2009-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2009-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -64,6 +64,10 @@ protected:
     /** Destruct the serializable. @version 1.0 */
     CO_API virtual ~Serializable();
 
+    /** NOP assignment operator. @version 1.1.1 */
+    Serializable& operator = ( const Serializable& from )
+        { Object::operator = ( from ); return *this; }
+
     /**
      * Worker for pack() and getInstanceData().
      *
@@ -114,10 +118,6 @@ protected:
     /** @sa Object::notifyAttached() */
     CO_API void notifyAttached() override;
 
-private:
-    detail::Serializable* const _impl;
-    friend class detail::Serializable;
-
     void getInstanceData( co::DataOStream& os ) final
         { serialize( os, DIRTY_ALL ); }
 
@@ -125,6 +125,10 @@ private:
 
     CO_API void pack( co::DataOStream& os ) final;
     CO_API void unpack( co::DataIStream& is ) final;
+
+private:
+    detail::Serializable* const _impl;
+    friend class detail::Serializable;
 };
 }
 #endif // CO_SERIALIZABLE_H

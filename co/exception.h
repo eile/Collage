@@ -21,8 +21,10 @@
 #ifndef CO_EXCEPTION_H
 #define CO_EXCEPTION_H
 
+#include <exception> // base class
+#include <iostream>
 #include <lunchbox/compiler.h>
-#include <sstream>
+#include <lunchbox/types.h>
 
 namespace co
 {

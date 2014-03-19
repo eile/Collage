@@ -41,7 +41,13 @@
 #include "worker.h"
 #include "zeroconf.h"
 
+#include <lunchbox/clock.h>
 #include <lunchbox/hash.h>
+#include <lunchbox/lockable.h>
+#include <lunchbox/rng.h>
+#include <lunchbox/servus.h>
+#include <lunchbox/sleep.h>
+
 #include <boost/bind.hpp>
 #include <list>
 
@@ -340,11 +346,11 @@ bool LocalNode::listen()
         }
 
         _impl->connectionNodes[ connection ] = this;
-        _impl->incoming.addConnection( connection );
         if( connection->isMulticast( ))
             _addMulticast( this, connection );
 
         connection->acceptNB();
+        _impl->incoming.addConnection( connection );
 
         LBVERB << "Added node " << getNodeID() << " using " << connection
                << std::endl;
@@ -471,9 +477,9 @@ void LocalNode::_addConnection( ConnectionPtr connection )
         return;
     }
 
-    _impl->incoming.addConnection( connection );
     BufferPtr buffer = _impl->smallBuffers.alloc( COMMAND_ALLOCSIZE );
     connection->recvNB( buffer, COMMAND_MINSIZE );
+    _impl->incoming.addConnection( connection );
 }
 
 void LocalNode::_removeConnection( ConnectionPtr connection )
@@ -863,7 +869,7 @@ NodePtr LocalNode::_connect( const NodeID& nodeID, NodePtr peer )
 
     lunchbox::RequestFuture< void* > request = registerRequest< void* >();
     peer->send( CMD_NODE_GET_NODE_DATA ) << nodeID << request;
-    void* result = request.get();
+    Dispatcher* result = static_cast< Dispatcher* >( request.get( ));
 
     if( !result )
     {
@@ -872,7 +878,7 @@ NodePtr LocalNode::_connect( const NodeID& nodeID, NodePtr peer )
         return 0;
     }
 
-    LBASSERT( dynamic_cast< Node* >( (Dispatcher*)result ));
+    LBASSERT( dynamic_cast< Node* >( result ));
     node = static_cast< Node* >( result );
     node->unref( this ); // ref'd before serveRequest()
 
@@ -1229,12 +1235,10 @@ void LocalNode::_handleConnect()
     ConnectionPtr newConn = connection->acceptSync();
     connection->acceptNB();
 
-    if( !newConn )
-    {
+    if( newConn )
+        _addConnection( newConn );
+    else
         LBINFO << "Received connect event, but accept() failed" << std::endl;
-        return;
-    }
-    _addConnection( newConn );
 }
 
 void LocalNode::_handleDisconnect()
@@ -1701,9 +1705,9 @@ bool LocalNode::_cmdConnectReply( ICommand& command )
     {
         if( requestID != LB_UNDEFINED_UINT32 )
         {
-            void* ptr = getRequestData( requestID );
-            LBASSERT( dynamic_cast< Node* >( (Dispatcher*)ptr ));
-            peer = static_cast< Node* >( ptr );
+            Node* node = static_cast< Node* >( getRequestData( requestID ));
+            LBASSERT( dynamic_cast< Node* >( node ));
+            peer = static_cast< Node* >( node );
         }
         else
             peer = createNode( nodeType );
@@ -1956,7 +1960,8 @@ bool LocalNode::_cmdReleaseSendToken( ICommand& )
 
 bool LocalNode::_cmdAddListener( ICommand& command )
 {
-    Connection* rawConnection = (Connection*)(command.get< uint64_t >( ));
+    Connection* rawConnection =
+        reinterpret_cast< Connection* >( command.get< uint64_t >( ));
     std::string data = command.get< std::string >();
 
     ConnectionDescriptionPtr description = new ConnectionDescription( data );
@@ -1970,11 +1975,12 @@ bool LocalNode::_cmdAddListener( ICommand& command )
     LBASSERT( connection );
 
     _impl->connectionNodes[ connection ] = this;
-    _impl->incoming.addConnection( connection );
     if( connection->isMulticast( ))
         _addMulticast( this, connection );
 
     connection->acceptNB();
+    _impl->incoming.addConnection( connection );
+
     _initService(); // update zeroconf
     return true;
 }
@@ -2062,7 +2068,8 @@ bool LocalNode::_cmdAddConnection( ICommand& command )
 {
     LBASSERT( _impl->inReceiverThread( ));
 
-    Connection* rawConnection = (Connection*)(command.get< uint64_t >( ));
+    Connection* rawConnection =
+        reinterpret_cast< Connection* >( command.get< uint64_t >( ));
     ConnectionPtr connection = rawConnection;
     connection->unref();
 

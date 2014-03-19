@@ -1,20 +1,20 @@
 
 # Copyright (c) 2010 Daniel Pfeifer <daniel@pfeifer-mail.de>
-#               2010-2013 Stefan Eilemann <eile@eyescale.ch>
+#               2010-2014 Stefan Eilemann <eile@eyescale.ch>
 
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(Collage)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake
   ${CMAKE_SOURCE_DIR}/CMake/common)
-include(.gitexternals)
 
+include(GitExternal)
 include(Buildyard)
+
 if(BUILDYARD_STOP)
   return()
 endif()
 
-set(PROJECT_INCLUDE_NAME co)
 option(COLLAGE_BUILD_V2_API
   "Enable for pure 2.0 API (breaks compatibility with 1.x API)" OFF)
 
@@ -24,12 +24,14 @@ set(VERSION_MINOR "1")
 set(VERSION_PATCH "0")
 set(LAST_RELEASE 1.0.0)
 
-include(Common)
-include(GitTargets)
-include(Revision)
-include(UpdateFile)
+set(PROJECT_INCLUDE_NAME co)
+set(COMMON_PROJECT_DOMAIN ch.eyescale)
+set(COLLAGE_DESCRIPTION "High-performance C++ library for developing object-oriented distributed applications.")
 
+include(Common)
 include(FindPackages)
+
+list(APPEND CPPCHECK_EXTRA_ARGS -DCO_API=)
 set(COLLAGE_DEPENDENT_LIBRARIES Lunchbox)
 
 include_directories(BEFORE ${CMAKE_SOURCE_DIR})

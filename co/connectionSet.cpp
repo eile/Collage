@@ -24,6 +24,7 @@
 #include "connectionListener.h"
 #include "eventConnection.h"
 
+#include <lunchbox/algorithm.h>
 #include <lunchbox/buffer.h>
 #include <lunchbox/os.h>
 #include <lunchbox/scopedMutex.h>
@@ -431,26 +432,32 @@ ConnectionSet::Event ConnectionSet::select( const uint32_t timeout )
             default: // SUCCESS
             {
                 const Event event = _getSelectResult( ret );
-
                 if( event == EVENT_NONE )
                      break;
-
-                if( _impl->connection == _impl->selfConnection.get( ))
-                {
-                    _impl->connection = 0;
-                    _impl->selfConnection->reset();
-                    return EVENT_INTERRUPT;
-                }
-                if( event == EVENT_DATA && _impl->connection->isListening( ))
-                    return EVENT_CONNECT;
                 return event;
             }
         }
     }
 }
 
-#ifdef _WIN32
+
 ConnectionSet::Event ConnectionSet::_getSelectResult( const uint32_t index )
+{
+    const Event event = _parseSelect( index );
+    if( _impl->connection == _impl->selfConnection.get( ))
+    {
+        _impl->connection = 0;
+        _impl->selfConnection->reset();
+        return EVENT_INTERRUPT;
+    }
+    if( event == EVENT_DATA && _impl->connection->isListening( ))
+        return EVENT_CONNECT;
+
+    return event;
+}
+
+#ifdef _WIN32
+ConnectionSet::Event ConnectionSet::_parseSelect( const uint32_t index )
 {
     const uint32_t i = index - WAIT_OBJECT_0;
     LBASSERT( i < MAXIMUM_WAIT_OBJECTS );
@@ -480,7 +487,7 @@ ConnectionSet::Event ConnectionSet::_getSelectResult( const uint32_t index )
     return EVENT_DATA;
 }
 #else // _WIN32
-ConnectionSet::Event ConnectionSet::_getSelectResult( const uint32_t )
+ConnectionSet::Event ConnectionSet::_parseSelect( const uint32_t )
 {
     for( size_t i = 0; i < _impl->fdSet.getSize(); ++i )
     {
@@ -489,10 +496,10 @@ ConnectionSet::Event ConnectionSet::_getSelectResult( const uint32_t )
             continue;
 
         const int pollEvents = pollFD.revents;
+        pollFD.revents = 0;
         LBASSERT( pollFD.fd > 0 );
 
         _impl->connection = _impl->fdSetResult[i].connection;
-        pollFD.revents = 0;
         LBASSERT( _impl->connection );
 
         LBVERB << "Got event on connection @" << (void*)_impl->connection.get()
@@ -588,11 +595,11 @@ bool ConnectionSet::_setupFDSet()
 #else // _WIN32
     pollfd fd;
     fd.events = POLLIN; // | POLLPRI;
+    fd.revents = 0;
 
     // add self 'connection'
     fd.fd = _impl->selfConnection->getNotifier();
     LBASSERT( fd.fd > 0 );
-    fd.revents = 0;
     _impl->fdSet.append( fd );
 
     Result result;
@@ -619,7 +626,6 @@ bool ConnectionSet::_setupFDSet()
 
         LBVERB << "Listening on " << typeid( *connection.get( )).name()
                << " @" << (void*)connection.get() << std::endl;
-        fd.revents = 0;
 
         _impl->fdSet.append( fd );
 
