@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2012, Stefan.Eilemann@epfl.ch
+ *               2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -51,9 +51,8 @@ public:
      * @param id the ID of the object to dispatch this command to.
      * @param instanceID the instance of the object to dispatch the command to.
      * @param version the version of the object data.
+     * @param data a pointer to the object data.
      * @param sequence the index in a sequence of a set commands.
-     * @param data a pointer to the uncompressed object data.
-     * @param size the size of the uncompressed object data.
      * @param isLast true if this is the last command for one object
      * @param stream the stream containing the (possible) compressed object data
      */
@@ -61,9 +60,8 @@ public:
                                const uint32_t cmd, const uint32_t type,
                                const UUID& id, const uint32_t instanceID,
                                const uint128_t& version,
-                               const uint32_t sequence,
-                               const void* data, const uint64_t size,
-                               const bool isLast,
+                               const CompressorResult& data,
+                               const uint32_t sequence, const bool isLast,
                                DataOStream* stream );
 
     /** @internal */
@@ -79,9 +77,6 @@ private:
 
     CO_API ObjectDataICommand _getCommand( LocalNodePtr node ); // needed by:
     friend int ::testMain( int, char ** );
-
-    void _init( const uint128_t& version, const uint32_t sequence,
-                const uint64_t dataSize, const bool isLast );
 };
 }
 

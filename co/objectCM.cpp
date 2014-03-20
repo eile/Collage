@@ -20,6 +20,7 @@
 
 #include "objectCM.h"
 
+#include "compressorResult.h"
 #include "nodeCommand.h"
 #include "nullCM.h"
 #include "node.h"
@@ -206,10 +207,11 @@ void ObjectCM::_sendEmptyVersion( const MasterCMCommand& command,
 {
     NodePtr node = command.getNode();
     ConnectionPtr connection = node->getConnection( multicast );
+    const CompressorResult data( 0, 0 );
 
     ObjectDataOCommand( Connections( 1, connection ), CMD_OBJECT_INSTANCE,
                         COMMANDTYPE_OBJECT, _object->getID(),
-                        command.getInstanceID(), version, 0, 0, 0, true, 0 )
+                        command.getInstanceID(), version, data, 0, true, 0 )
             << NodeID() << _object->getInstanceID();
 }
 

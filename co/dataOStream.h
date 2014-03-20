@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -62,15 +62,8 @@ public:
     /** @internal @return if data was sent since the last enable() */
     CO_API bool hasSentData() const;
 
-    /** @internal Send the (compressed) data using the given connection. */
-    void sendBody( ConnectionPtr connection, const void* data,
-                   const uint64_t size );
-
     /** @internal */
     CO_API const Connections& getConnections() const;
-
-    /** @internal Stream the data header (compressor, nChunks). */
-    DataOStream& streamDataHeader( DataOStream& os );
 
     /** @internal @return the compressed data size, 0 if uncompressed.*/
     uint64_t getCompressedDataSize() const;
@@ -171,8 +164,7 @@ protected:
     /** @internal @name Data sending, used by the subclasses */
     //@{
     /** @internal Send a data buffer (command) to the receivers. */
-    virtual void sendData( const void* data, const uint64_t size,
-                           const bool last ) = 0;
+    virtual void sendData( const CompressorResult& data, const bool last ) = 0;
     //@}
 
     /** @internal Reset the whole stream. */

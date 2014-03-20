@@ -67,6 +67,7 @@ class QueueSlave;
 class Serializable;
 class Zeroconf;
 template< class Q > class WorkerThread;
+struct CompressorResult;
 struct ObjectVersion;
 
 

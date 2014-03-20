@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it under
@@ -45,13 +45,11 @@ public:
     DataOStream() {}
 
 protected:
-    void sendData( const void* data, const uint64_t size, const bool last )
-        override
+    void sendData( const co::CompressorResult& data, const bool last ) override
     {
         co::ObjectDataOCommand( getConnections(), co::CMD_OBJECT_DELTA,
                                 co::COMMANDTYPE_OBJECT, co::UUID(), 0,
-                                co::uint128_t(), 0, data, size, last,
-                                this );
+                                co::uint128_t(), data, 0, last, this );
     }
 
     co::uint128_t getVersion() const override { return co::VERSION_NONE; }

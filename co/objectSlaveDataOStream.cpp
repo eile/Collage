@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder  <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -31,7 +31,7 @@ namespace co
 {
 ObjectSlaveDataOStream::ObjectSlaveDataOStream( const ObjectCM* cm )
         : ObjectDataOStream( cm )
-        , _commit( true )
+        , _commit( true /* generate new commit ID */ )
 {}
 
 ObjectSlaveDataOStream::~ObjectSlaveDataOStream()
@@ -44,11 +44,11 @@ void ObjectSlaveDataOStream::enableSlaveCommit( NodePtr node )
     _enable();
 }
 
-void ObjectSlaveDataOStream::sendData( const void* data, const uint64_t size,
+void ObjectSlaveDataOStream::sendData( const CompressorResult& data,
                                        const bool last )
 {
     send( CMD_OBJECT_SLAVE_DELTA, COMMANDTYPE_OBJECT,
-          _cm->getObject()->getMasterInstanceID(), data, size, last ) <<_commit;
+          _cm->getObject()->getMasterInstanceID(), data, last ) <<_commit;
 
     if( last )
         _commit = UUID( true /* generate new commit ID */ );

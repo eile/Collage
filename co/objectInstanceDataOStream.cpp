@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder  <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -139,11 +139,11 @@ void ObjectInstanceDataOStream::enableMap( const uint128_t& version,
     _enable();
 }
 
-void ObjectInstanceDataOStream::sendData( const void* data, const uint64_t size,
+void ObjectInstanceDataOStream::sendData( const CompressorResult& data,
                                           const bool last )
 {
     LBASSERT( _command );
-    send( _command, COMMANDTYPE_NODE, _instanceID, data, size, last )
+    send( _command, COMMANDTYPE_NODE, _instanceID, data, last )
         << _nodeID << _cm->getObject()->getInstanceID();
 }
 

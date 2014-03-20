@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -44,7 +44,7 @@ namespace co
     protected:
         ObjectDataOCommand send( const uint32_t cmd, const uint32_t type,
                                  const uint32_t instanceID,
-                                 const void* data, const uint64_t size,
+                                 const CompressorResult& data,
                                  const bool last );
 
         const ObjectCM* _cm;

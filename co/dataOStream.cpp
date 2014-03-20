@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder <cedric.stalder@gmail.com>
  *               2011-2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -24,6 +24,7 @@
 #include "buffer.h"
 #include "connectionDescription.h"
 #include "commands.h"
+#include "compressorResult.h"
 #include "connections.h"
 #include "global.h"
 #include "log.h"
@@ -117,29 +118,22 @@ public:
         return compressor.getInfo().name;
     }
 
-    uint32_t getNumChunks() const
-    {
-        if( state == STATE_UNCOMPRESSED || state == STATE_UNCOMPRESSIBLE )
-            return 1;
-        return compressor.getNumResults();
-    }
-
-
     /** Compress data and update the compressor state. */
-    void compress( void* src, const uint64_t size, const CompressorState result)
+    const CompressorResult& compress( void* src, const uint64_t size,
+                                      const CompressorState newState )
     {
-        if( state == result || state == STATE_UNCOMPRESSIBLE )
-            return;
+        if( state == newState || state == STATE_UNCOMPRESSIBLE )
+            return result_;
 #ifdef CO_INSTRUMENT_DATAOSTREAM
         nBytesIn += size;
 #endif
         const uint64_t threshold =
            uint64_t( Global::getIAttribute( Global::IATTR_OBJECT_COMPRESSION ));
 
-        if( !compressor.isGood() || size <= threshold )
+        if( !compressor || size <= threshold )
         {
-            state = STATE_UNCOMPRESSED;
-            return;
+            result_ = CompressorResult( src, size );
+            return result_;
         }
 
         const uint64_t inDims[2] = { 0, size };
@@ -152,43 +146,43 @@ public:
         compressionTime += uint32_t( clock.getTimef() * 1000.f );
 #endif
 
-        const uint32_t nChunks = compressor.getNumResults();
-        compressedDataSize = 0;
-        LBASSERT( nChunks > 0 );
+        const lunchbox::CompressorResult& result = compressor.getResult();
+        LBASSERT( !result.chunks.empty( ));
 
-        for( uint32_t i = 0; i < nChunks; ++i )
-        {
-            void* chunk;
-            uint64_t chunkSize;
-
-            compressor.getResult( i, &chunk, &chunkSize );
-            compressedDataSize += chunkSize;
-        }
+        compressedDataSize = result.getSize();
 #ifdef CO_INSTRUMENT_DATAOSTREAM
         nBytesOut += compressedDataSize;
 #endif
 
         if( compressedDataSize >= size )
         {
-            state = STATE_UNCOMPRESSIBLE;
 #ifndef CO_AGGRESSIVE_CACHING
             compressor.realloc();
 
-            if( result == STATE_COMPLETE )
+            if( newState == STATE_COMPLETE )
                 buffer.pack();
 #endif
-            return;
+
+            state = STATE_UNCOMPRESSIBLE;
+            result_ = CompressorResult( src, size );
+            return result_;
         }
 
-        state = result;
 #ifndef CO_AGGRESSIVE_CACHING
-        if( result == STATE_COMPLETE )
+        if( newState == STATE_COMPLETE )
         {
             LBASSERT( buffer.getSize() == dataSize );
             buffer.clear();
         }
 #endif
+
+        state = newState;
+        result_ = CompressorResult( result, size );
+        return result_;
     }
+
+private:
+    CompressorResult result_;
 };
 }
 
@@ -265,8 +259,10 @@ void DataOStream::_resend()
     LBASSERT( !_impl->connections.empty( ));
     LBASSERT( _impl->save );
 
-    _impl->compress( _impl->buffer.getData(), _impl->dataSize, STATE_COMPLETE );
-    sendData( _impl->buffer.getData(), _impl->dataSize, true );
+    const CompressorResult& result = _impl->compress( _impl->buffer.getData(),
+                                                      _impl->dataSize,
+                                                      STATE_COMPLETE );
+    sendData( result, true );
 }
 
 void DataOStream::_clearConnections()
@@ -286,6 +282,7 @@ void DataOStream::disable()
     {
         void* ptr = _impl->buffer.getData() + _impl->bufferStart;
         const uint64_t size = _impl->buffer.getSize() - _impl->bufferStart;
+        CompressorResult result;
 
         if( size == 0 && _impl->state == STATE_PARTIAL )
         {
@@ -300,10 +297,10 @@ void DataOStream::disable()
             _impl->state = STATE_UNCOMPRESSED;
             const CompressorState state = _impl->bufferStart == 0 ?
                                               STATE_COMPLETE : STATE_PARTIAL;
-            _impl->compress( ptr, size, state );
+            result = _impl->compress( ptr, size, state );
         }
 
-        sendData( ptr, size, true ); // always send to finalize istream
+        sendData( result, true ); // always send to finalize istream
     }
 
 #ifndef CO_AGGRESSIVE_CACHING
@@ -361,8 +358,9 @@ void DataOStream::flush( const bool last )
         const uint64_t size = _impl->buffer.getSize() - _impl->bufferStart;
 
         _impl->state = STATE_UNCOMPRESSED;
-        _impl->compress( ptr, size, STATE_PARTIAL );
-        sendData( ptr, size, last );
+        const CompressorResult& result = _impl->compress( ptr, size,
+                                                          STATE_PARTIAL );
+        sendData( result, last );
     }
     _impl->dataSent = true;
     _resetBuffer();
@@ -392,78 +390,9 @@ void DataOStream::_resetBuffer()
     }
 }
 
-uint64_t DataOStream::_getCompressedData( void** chunks, uint64_t* chunkSizes )
-    const
-{
-    LBASSERT( _impl->state != STATE_UNCOMPRESSED &&
-              _impl->state != STATE_UNCOMPRESSIBLE );
-
-    const uint32_t nChunks = _impl->compressor.getNumResults( );
-    LBASSERT( nChunks > 0 );
-
-    uint64_t dataSize = 0;
-    for ( uint32_t i = 0; i < nChunks; i++ )
-    {
-        _impl->compressor.getResult( i, &chunks[i], &chunkSizes[i] );
-        dataSize += chunkSizes[i];
-        LBASSERTINFO( chunkSizes[i] != 0, i );
-    }
-
-    return dataSize;
-}
-
 lunchbox::Bufferb& DataOStream::getBuffer()
 {
     return _impl->buffer;
-}
-
-DataOStream& DataOStream::streamDataHeader( DataOStream& os )
-{
-    os << _impl->getCompressor() << _impl->getNumChunks();
-    return os;
-}
-
-void DataOStream::sendBody( ConnectionPtr connection, const void* data,
-                            const uint64_t size )
-{
-#ifdef EQ_INSTRUMENT_DATAOSTREAM
-    nBytesSent += size;
-#endif
-
-    const uint32_t compressor = _impl->getCompressor();
-    if( compressor == EQ_COMPRESSOR_NONE )
-    {
-        if( size > 0 )
-            LBCHECK( connection->send( data, size, true ));
-        return;
-    }
-
-    const uint32_t nChunks = _impl->compressor.getNumResults();
-    uint64_t* chunkSizes = static_cast< uint64_t* >
-                               ( alloca (nChunks * sizeof( uint64_t )));
-    void** chunks = static_cast< void ** >
-                                  ( alloca( nChunks * sizeof( void* )));
-
-#ifdef CO_INSTRUMENT_DATAOSTREAM
-    const uint64_t compressedSize = _getCompressedData( chunks, chunkSizes );
-    nBytesSaved += size - compressedSize;
-#else
-    _getCompressedData( chunks, chunkSizes );
-#endif
-
-    for( size_t j = 0; j < nChunks; ++j )
-    {
-        LBCHECK( connection->send( &chunkSizes[j], sizeof( uint64_t ), true ));
-        LBCHECK( connection->send( chunks[j], chunkSizes[j], true ));
-    }
-}
-
-uint64_t DataOStream::getCompressedDataSize() const
-{
-    if( _impl->getCompressor() == EQ_COMPRESSOR_NONE )
-        return 0;
-    return _impl->compressedDataSize
-            + _impl->getNumChunks() * sizeof( uint64_t );
 }
 
 std::ostream& operator << ( std::ostream& os, const DataOStream& dataOStream )

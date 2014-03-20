@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2013, Stefan.Eilemann@epfl.ch
+ *               2013-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -47,8 +47,7 @@ private:
     QueueItem( QueueMaster& master );
     QueueItem( const QueueItem& rhs );
 
-    void sendData( const void*, const uint64_t, const bool ) override
-        { LBDONTCALL }
+    void sendData( const CompressorResult&, const bool ) override { LBDONTCALL }
     uint128_t getVersion() const override { LBDONTCALL; return VERSION_NONE; }
 
     detail::QueueItem* const _impl;
