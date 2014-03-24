@@ -64,7 +64,7 @@ ObjectDataOCommand::ObjectDataOCommand( const Connections& receivers,
     , _impl( new detail::ObjectDataOCommand( stream, data ))
 {
     *this << version << data.rawSize << sequence << isLast
-          << data.compressor << data.chunks.size();
+          << data.compressor << uint32_t( data.chunks.size( ));
 }
 
 ObjectDataOCommand::ObjectDataOCommand( const ObjectDataOCommand& rhs )

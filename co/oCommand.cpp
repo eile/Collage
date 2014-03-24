@@ -125,9 +125,9 @@ void OCommand::send( const CompressorResult& body )
     // body
     BOOST_FOREACH( const lunchbox::CompressorChunk& chunk, body.chunks )
     {
+        const uint64_t size = chunk.getNumBytes();
         BOOST_FOREACH( ConnectionPtr connection, connections )
         {
-            const uint64_t size = chunk.getNumBytes();
             if( body.compressor != EQ_COMPRESSOR_NONE )
                 LBCHECK( connection->send( &size, sizeof( size ), true ));
             if( size > 0 )
