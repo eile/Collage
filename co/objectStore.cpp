@@ -1171,8 +1171,8 @@ bool ObjectStore::_cmdInstance( ICommand& inCommand )
     const uint32_t masterInstanceID = command.get< uint32_t >();
     const uint32_t cmd = command.getCommand();
 
-    LBLOG( LOG_OBJECTS ) << "Cmd instance " << command << " master "
-                         << masterInstanceID << " node " << nodeID << std::endl;
+    LBLOG( LOG_OBJECTS ) << "Instance " << command << " for " << nodeID
+                         << " master " << masterInstanceID << std::endl;
 
     command.setType( COMMANDTYPE_OBJECT );
     command.setCommand( CMD_OBJECT_INSTANCE );

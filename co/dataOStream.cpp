@@ -92,7 +92,7 @@ public:
         return compressor.getInfo().name;
     }
 
-    /** Compress data and update the compressor state. */
+    /** Compress data if needed and update the compressor state. */
     const CompressorResult& compress( void* src, const uint64_t size,
                                       const co::DataOStream::State newState )
     {
