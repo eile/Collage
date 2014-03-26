@@ -46,7 +46,7 @@ QueueItem::QueueItem( QueueMaster& master )
     , _impl( new detail::QueueItem( master ))
 {
     enableSave();
-    _enable();
+    enable();
 }
 
 QueueItem::QueueItem( const QueueItem& rhs )
@@ -54,7 +54,7 @@ QueueItem::QueueItem( const QueueItem& rhs )
     , _impl( new detail::QueueItem( *rhs._impl ))
 {
     enableSave();
-    _enable();
+    enable();
 }
 
 QueueItem::~QueueItem()

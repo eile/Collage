@@ -49,7 +49,7 @@ void DeltaMasterCM::_commit()
         _deltaData.disable();
     }
 
-    if( _slaves->empty() || _deltaData.hasSentData( ))
+    if( _slaves->empty() || _deltaData.hasData( ))
     {
         // save instance data
         InstanceData* instanceData = _newInstanceData();
@@ -58,7 +58,7 @@ void DeltaMasterCM::_commit()
         _object->getInstanceData( instanceData->os );
         instanceData->os.disable();
 
-        if( _deltaData.hasSentData() || instanceData->os.hasSentData( ))
+        if( _deltaData.hasData() || instanceData->os.hasData( ))
         {
             ++_version;
             LBASSERT( _version != VERSION_NONE );

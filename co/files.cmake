@@ -60,6 +60,7 @@ set(CO_HEADERS
   barrierCommand.h
   bufferCache.h
   connectionListener.h
+  connectionOStream.h
   dataStreamArchive.h
   dataIStreamQueue.h
   deltaMasterCM.h
@@ -98,6 +99,7 @@ set(CO_SOURCES
   commandQueue.cpp
   connection.cpp
   connectionDescription.cpp
+  connectionOStream.cpp
   connectionSet.cpp
   customICommand.cpp
   customOCommand.cpp

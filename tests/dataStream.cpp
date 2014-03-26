@@ -25,8 +25,11 @@
 #include <co/connectionDescription.h>
 #include <co/dataIStream.h>
 #include <co/dataOStream.h>
+#include <co/global.h>
 #include <co/init.h>
 
+#include <lunchbox/compressor.h>
+#include <lunchbox/plugins/compressor.h>
 #include <lunchbox/thread.h>
 
 #include <co/objectDataOCommand.h> // private header
@@ -39,10 +42,17 @@
 static const std::string _message( "So long, and thanks for all the fish" );
 static const std::string _lorem( "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut eget felis sed leo tincidunt dictum eu eu felis. Aenean aliquam augue nec elit tristique tempus. Pellentesque dignissim adipiscing tellus, ut porttitor nisl lacinia vel. Donec malesuada lobortis velit, nec lobortis metus consequat ac. Ut dictum rutrum dui. Pellentesque quis risus at lectus bibendum laoreet. Suspendisse tristique urna quis urna faucibus et auctor risus ultricies. Morbi vitae mi vitae nisi adipiscing ultricies ac in nulla. Nam mattis venenatis nulla, non posuere felis tempus eget. Cras dapibus ultrices arcu vel dapibus. Nam hendrerit lacinia consectetur. Donec ullamcorper nibh nisl, id aliquam nisl. Nunc at tortor a lacus tincidunt gravida vitae nec risus. Suspendisse potenti. Fusce tristique dapibus ipsum, sit amet posuere turpis fermentum nec. Nam nec ante dolor." );
 
-class DataOStream : public co::DataOStream
+class DataOStream : public co::ConnectionOStream
 {
 public:
-    DataOStream() {}
+    DataOStream()
+    {
+        const uint32_t name =
+            lunchbox::Compressor::choose( co::Global::getPluginRegistry(),
+                                          EQ_COMPRESSOR_DATATYPE_BYTE, 1.f,
+                                          false );
+        _initCompressor( name );
+    }
 
 protected:
     void sendData( const co::CompressorResult& data, const bool last ) override
@@ -87,7 +97,8 @@ protected:
         size = command.getDataSize();
         compressor = command.getCompressor();
         nChunks = command.getChunks();
-        *chunkData = command.getRemainingBuffer( size );
+        *chunkData = command.getRemainingBuffer(
+                         command.getRemainingBufferSize( ));
         return true;
     }
 
@@ -116,8 +127,8 @@ protected:
     {
         ::DataOStream stream;
 
-        stream._setupConnection( _connection );
-        stream._enable();
+        stream.setup( co::Connections( 1, _connection ));
+        stream.enable();
 
         int foo = 42;
         stream << foo;
@@ -138,7 +149,7 @@ protected:
 
         std::string strings[2] = { _message, _lorem };
         stream << co::Array< std::string >( strings, 2 );
-
+        std::cout << stream << std::endl;
         stream.disable();
     }
 

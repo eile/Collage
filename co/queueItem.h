@@ -47,7 +47,8 @@ private:
     QueueItem( QueueMaster& master );
     QueueItem( const QueueItem& rhs );
 
-    void sendData( const CompressorResult&, const bool ) override { LBDONTCALL }
+    void emit( void*, const uint64_t, const State, const bool ) override
+        { LBDONTCALL }
     uint128_t getVersion() const override { LBDONTCALL; return VERSION_NONE; }
 
     detail::QueueItem* const _impl;

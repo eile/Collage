@@ -22,7 +22,7 @@
 #define CO_OCOMMAND_H
 
 #include <co/commands.h>       // for COMMANDTYPE_NODE
-#include <co/dataOStream.h>    // base class
+#include <co/connectionOStream.h>    // base class
 
 
 namespace co
@@ -37,7 +37,7 @@ namespace detail { class OCommand; }
  * The command is send or dispatched after it goes out of scope, i.e. during
  * destruction.
  */
-class OCommand : public DataOStream
+class OCommand : public ConnectionOStream
 {
 public:
     /** @internal
@@ -48,7 +48,7 @@ public:
      * @param type the command type for dispatching.
      */
     CO_API OCommand( const Connections& receivers, const uint32_t cmd,
-                     const uint32_t type = COMMANDTYPE_NODE );
+                     const uint32_t type );
 
     /** @internal
      * Construct a command which is dispatched locally typically to a co::Node.
@@ -59,9 +59,9 @@ public:
      * @param type the command type for dispatching.
      */
     CO_API OCommand( Dispatcher* const dispatcher, LocalNodePtr localNode,
-                     const uint32_t cmd, const uint32_t type=COMMANDTYPE_NODE );
+                     const uint32_t cmd, const uint32_t type );
 
-    /** @internal */
+    /** @internal "move" ctor */
     CO_API OCommand( const OCommand& rhs );
 
     /** Send or dispatch this command during destruction. */

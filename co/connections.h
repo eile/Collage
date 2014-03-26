@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2011-2013, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2011-2014, Stefan Eilemann <eile@eyescale.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -21,6 +21,7 @@
 #define CO_CONNECTIONS_H
 
 #include <co/connection.h>
+#include <co/connectionDescription.h>
 #include <co/node.h>
 #include <co/types.h>
 #include <lunchbox/hash.h>

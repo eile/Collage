@@ -40,8 +40,8 @@ ObjectSlaveDataOStream::~ObjectSlaveDataOStream()
 void ObjectSlaveDataOStream::enableSlaveCommit( NodePtr node )
 {
     _version = UUID( true );
-    _setupConnection( node, false /* useMulticast */ );
-    _enable();
+    setup( node, false /* useMulticast */ );
+    enable();
 }
 
 void ObjectSlaveDataOStream::sendData( const CompressorResult& data,

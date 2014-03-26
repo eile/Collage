@@ -21,35 +21,35 @@
 #ifndef CO_OBJECTDATAOSTREAM_H
 #define CO_OBJECTDATAOSTREAM_H
 
-#include <co/dataOStream.h>   // base class
+#include <co/connectionOStream.h>   // base class
 #include <co/version.h>       // enum
 
 namespace co
 {
-    /** The DataOStream for object data. */
-    class ObjectDataOStream : public DataOStream
-    {
-    public:
-        ObjectDataOStream( const ObjectCM* cm );
-        virtual ~ObjectDataOStream(){}
+/** The DataOStream for object data. */
+class ObjectDataOStream : public ConnectionOStream
+{
+public:
+    ObjectDataOStream( const ObjectCM* cm );
+    virtual ~ObjectDataOStream(){}
 
-        void reset() override;
+    void reset() override;
 
-        /** Set up commit of the given version to the receivers. */
-        virtual void enableCommit( const uint128_t& version,
-                                   const Nodes& receivers );
+    /** Set up commit of the given version to the receivers. */
+    virtual void enableCommit( const uint128_t& version,
+                               const Nodes& receivers );
 
-        uint128_t getVersion() const override { return _version; }
+    uint128_t getVersion() const override { return _version; }
 
-    protected:
-        ObjectDataOCommand send( const uint32_t cmd, const uint32_t type,
-                                 const uint32_t instanceID,
-                                 const CompressorResult& data,
-                                 const bool last );
+protected:
+    ObjectDataOCommand send( const uint32_t cmd, const uint32_t type,
+                             const uint32_t instanceID,
+                             const CompressorResult& data,
+                             const bool last );
 
-        const ObjectCM* _cm;
-        uint128_t _version;
-        uint32_t _sequence;
-    };
+    const ObjectCM* _cm;
+    uint128_t _version;
+    uint32_t _sequence;
+};
 }
 #endif //CO_OBJECTDATAOSTREAM_H

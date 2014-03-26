@@ -49,24 +49,21 @@ public:
 
 OCommand::OCommand( const Connections& receivers, const uint32_t cmd,
                     const uint32_t type )
-    : DataOStream()
-    , _impl( new detail::OCommand( 0, 0 ))
+    : _impl( new detail::OCommand( 0, 0 ))
 {
-    _setupConnections( receivers );
+    setup( receivers );
     _init( cmd, type );
 }
 
 OCommand::OCommand( Dispatcher* const dispatcher, LocalNodePtr localNode,
                     const uint32_t cmd, const uint32_t type )
-    : DataOStream()
-    , _impl( new detail::OCommand( dispatcher, localNode ))
+    : _impl( new detail::OCommand( dispatcher, localNode ))
 {
     _init( cmd, type );
 }
 
 OCommand::OCommand( const OCommand& rhs )
-    : DataOStream( const_cast< OCommand& >( rhs ))
-    , _impl( new detail::OCommand( *rhs._impl ))
+    : _impl( new detail::OCommand( *rhs._impl ))
 {
 }
 
@@ -99,7 +96,7 @@ void OCommand::_init( const uint32_t cmd, const uint32_t type )
     LBASSERTINFO( cmd < CMD_NODE_MAXIMUM, std::hex << "0x" << cmd << std::dec );
 #endif
     enableSave();
-    _enable();
+    enable();
     *this << 0ull /* size */ << type << cmd;
 }
 
