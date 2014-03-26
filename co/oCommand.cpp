@@ -159,7 +159,8 @@ uint128_t OCommand::getVersion() const
     return VERSION_NONE;
 }
 
-void OCommand::sendData( const CompressorResult& data, const bool last )
+void OCommand::sendData( const CompressorResult& data,
+                         const bool last LB_UNUSED )
 {
     LBASSERT( !_impl->dispatcher );
     LBASSERT( last );
