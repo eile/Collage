@@ -155,6 +155,8 @@ protected:
     /** @internal Reset the whole stream. */
     virtual CO_API void reset();
 
+    void setChunkSize( const uint64_t size ); //!< @internal
+
 private:
     detail::DataOStream* const _impl;
 

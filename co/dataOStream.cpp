@@ -43,10 +43,12 @@ class DataOStream
 public:
     co::DataOStream::State state;
 
-    /** The buffer used for saving and buffering */
+    /** The buffer used to save and buffer */
     lunchbox::Bufferb buffer;
 
-    /** The start position of the buffering, always 0 if !_save */
+    uint64_t chunkSize; //!< The flush granularity
+
+    /** The start position of the buffering, always 0 if !save */
     uint64_t bufferStart;
 
     /** The uncompressed size of a completely compressed buffer. */
@@ -66,6 +68,7 @@ public:
 
     DataOStream()
         : state( co::DataOStream::STATE_UNCOMPRESSED )
+        , chunkSize( Global::getObjectBufferSize( ))
         , bufferStart( 0 )
         , dataSize( 0 )
         , enabled( false )
@@ -75,6 +78,7 @@ public:
 
     DataOStream( const DataOStream& rhs )
         : state( rhs.state )
+        , chunkSize( rhs.chunkSize )
         , bufferStart( rhs.bufferStart )
         , dataSize( rhs.dataSize )
         , enabled( rhs.enabled )
@@ -159,7 +163,7 @@ DataOStream::DataOStream( DataOStream& rhs )
     : lunchbox::NonCopyable()
     , _impl( new detail::DataOStream( *rhs._impl ))
 {
-    getBuffer().swap( rhs.getBuffer( ));
+    _impl->buffer.swap( rhs._impl->buffer );
 }
 
 DataOStream::~DataOStream()
@@ -259,11 +263,9 @@ void DataOStream::_write( const void* data, uint64_t size )
 {
     LBASSERT( _impl->enabled );
 
-    if( _impl->buffer.getSize() - _impl->bufferStart >
-        Global::getObjectBufferSize( ))
-    {
+    if( _impl->buffer.getSize() - _impl->bufferStart > _impl->chunkSize )
         flush( false );
-    }
+
     _impl->buffer.append( static_cast< const uint8_t* >( data ), size );
 }
 
@@ -285,6 +287,13 @@ void DataOStream::reset()
 {
     _resetBuffer();
     _impl->enabled = false;
+}
+
+void DataOStream::setChunkSize( const uint64_t size )
+{
+    LBASSERT( !_impl->enabled );
+    LBASSERT( size > 0 );
+    _impl->chunkSize = size;
 }
 
 void DataOStream::_resetBuffer()
