@@ -531,7 +531,7 @@ protected:
     /** @internal Notify remote node connection. */
     virtual void notifyConnect( NodePtr ) {}
 
-    /** @internal Notify remote node disconnection. */
+    /** @internal Notify remote node disconnection. Called from rcv thread. */
     virtual void notifyDisconnect( NodePtr ) {}
 
     /**

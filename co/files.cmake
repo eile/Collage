@@ -15,6 +15,7 @@ set(CO_PUBLIC_HEADERS
   commands.h
   connection.h
   connectionDescription.h
+  connectionOStream.h
   connectionSet.h
   connectionType.h
   customICommand.h
@@ -60,7 +61,6 @@ set(CO_HEADERS
   barrierCommand.h
   bufferCache.h
   connectionListener.h
-  connectionOStream.h
   dataStreamArchive.h
   dataIStreamQueue.h
   deltaMasterCM.h

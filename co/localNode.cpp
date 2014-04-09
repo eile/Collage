@@ -537,6 +537,7 @@ void LocalNode::_cleanup()
 
 void LocalNode::_closeNode( NodePtr node )
 {
+    LB_TS_THREAD( _rcvThread );
     ConnectionPtr connection = node->getConnection();
     ConnectionPtr mcConnection = node->_getMulticast();
 
