@@ -30,6 +30,7 @@
 #include "types.h"
 
 #include <lunchbox/compressor.h>
+#include <lunchbox/compressorResult.h>
 #include <lunchbox/plugins/compressor.h>
 
 #include  <boost/foreach.hpp>

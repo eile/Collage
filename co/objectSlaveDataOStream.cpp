@@ -30,16 +30,17 @@
 namespace co
 {
 ObjectSlaveDataOStream::ObjectSlaveDataOStream( const ObjectCM* cm )
-        : ObjectDataOStream( cm )
-        , _commit( true /* generate new commit ID */ )
-{}
+    : ObjectDataOStream( cm )
+    ,  _commit( lunchbox::make_UUID( ))
+{
+}
 
 ObjectSlaveDataOStream::~ObjectSlaveDataOStream()
 {}
 
 void ObjectSlaveDataOStream::enableSlaveCommit( NodePtr node )
 {
-    _version = UUID( true );
+    _version = lunchbox::make_UUID();
     setup( node, false /* useMulticast */ );
     enable();
 }
@@ -51,7 +52,7 @@ void ObjectSlaveDataOStream::sendData( const CompressorResult& data,
           _cm->getObject()->getMasterInstanceID(), data, last ) <<_commit;
 
     if( last )
-        _commit = UUID( true /* generate new commit ID */ );
+        _commit = lunchbox::make_UUID();
 }
 
 }
