@@ -44,7 +44,7 @@ namespace detail { class DataOStream; }
  * Implements buffering, retaining and compressing data in a binary format.
  * Derived classes emit the data using the appropriate implementation.
  */
-class DataOStream : public lunchbox::NonCopyable
+class DataOStream : public boost::noncopyable
 {
 public:
     enum State

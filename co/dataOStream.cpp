@@ -161,7 +161,7 @@ DataOStream::DataOStream()
 {}
 
 DataOStream::DataOStream( DataOStream& rhs )
-    : lunchbox::NonCopyable()
+    : boost::noncopyable()
     , _impl( new detail::DataOStream( *rhs._impl ))
 {
     _impl->buffer.swap( rhs._impl->buffer );
