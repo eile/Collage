@@ -1048,7 +1048,7 @@ uint32_t LocalNode::_connect( NodePtr node, ConnectionPtr connection )
     _addConnection( connection );
 
     // send connect command to peer
-    lunchbox::Request< void* > request = registerRequest< void* >( node.get( ));
+    lunchbox::Request< bool > request = registerRequest< bool >( node.get( ));
 #ifdef COLLAGE_BIGENDIAN
     uint32_t cmd = CMD_NODE_CONNECT_BE;
     lunchbox::byteswap( cmd );
@@ -1071,7 +1071,9 @@ uint32_t LocalNode::_connect( NodePtr node, ConnectionPtr connection )
         return CONNECT_TIMEOUT;
     }
 
-    if( !connected )
+    // In simultaneous connect case, depending on the connection type
+    // (e.g. RDMA), a check on the connection state of the node is required
+    if( !connected || !node->isConnected( ))
         return CONNECT_TRY_AGAIN;
 
     LBASSERT( node->getNodeID() != 0 );
@@ -1219,8 +1221,9 @@ void LocalNode::_runReceiverThread()
         }
         if( result != ConnectionSet::EVENT_ERROR &&
             result != ConnectionSet::EVENT_SELECT_ERROR )
-
+        {
             nErrors = 0;
+        }
     }
 
     if( !_impl->pendingCommands.empty( ))

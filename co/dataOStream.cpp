@@ -320,4 +320,75 @@ lunchbox::Bufferb& DataOStream::getBuffer()
     return _impl->buffer;
 }
 
+<<<<<<< HEAD
+=======
+DataOStream& DataOStream::streamDataHeader( DataOStream& os )
+{
+    os << _impl->getCompressor() << _impl->getNumChunks();
+    return os;
+}
+
+void DataOStream::sendBody( ConnectionPtr connection, const uint64_t dataSize )
+{
+    const uint32_t compressor = _impl->getCompressor();
+    if( compressor == EQ_COMPRESSOR_NONE )
+    {
+        if( dataSize > 0 )
+            LBCHECK( connection->send( _impl->buffer.getData(), dataSize,
+                                       true ));
+        return;
+    }
+
+#ifdef CO_INSTRUMENT_DATAOSTREAM
+    nBytesSent += _impl->buffer.getSize();
+#endif
+    const uint32_t nChunks = _impl->compressor.getResult().chunks.size();
+    uint64_t* chunkSizes = static_cast< uint64_t* >
+                               ( alloca (nChunks * sizeof( uint64_t )));
+    void** chunks = static_cast< void ** >
+                                  ( alloca( nChunks * sizeof( void* )));
+
+#ifdef CO_INSTRUMENT_DATAOSTREAM
+    const uint64_t compressedSize = _getCompressedData( chunks, chunkSizes );
+    nBytesSaved += _impl->buffer.getSize() - compressedSize;
+#else
+    _getCompressedData( chunks, chunkSizes );
+#endif
+
+    for( size_t j = 0; j < nChunks; ++j )
+    {
+        LBCHECK( connection->send( &chunkSizes[j], sizeof( uint64_t ), true ));
+        LBCHECK( connection->send( chunks[j], chunkSizes[j], true ));
+    }
+}
+
+uint64_t DataOStream::getCompressedDataSize() const
+{
+    if( _impl->getCompressor() == EQ_COMPRESSOR_NONE )
+        return 0;
+    return _impl->compressedDataSize
+            + _impl->getNumChunks() * sizeof( uint64_t );
+}
+
+std::ostream& operator << ( std::ostream& os, const DataOStream& dataOStream )
+{
+    os << "DataOStream "
+#ifdef CO_INSTRUMENT_DATAOSTREAM
+       << "compressed " << nBytesIn << " -> " << nBytesOut << " of " << nBytes
+       << " in " << compressionTime/1000 << "ms, saved " << nBytesSaved
+       << " of " << nBytesSent << " brutto sent";
+
+    nBytes = 0;
+    nBytesIn = 0;
+    nBytesOut = 0;
+    nBytesSaved = 0;
+    nBytesSent = 0;
+    compressionTime = 0;
+#else
+       << "@" << (void*)&dataOStream;
+#endif
+    return os;
+}
+
+>>>>>>> master
 }
