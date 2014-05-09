@@ -27,7 +27,7 @@ namespace co
 namespace detail { class ConnectionOStream; }
 namespace DataStreamTest { class Sender; }
 
-/** @internal Augments DataOStream with the emit to Connections capability. */
+/** @internal Augments DataOStream with the capability to emit to Connections. */
 class ConnectionOStream : public DataOStream
 {
 public:
