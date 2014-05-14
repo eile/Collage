@@ -161,7 +161,7 @@ ConnectionPtr Node::getMulticast()
 #else
     const uint32_t cmd = CMD_NODE_ID;
 #endif
-    OCommand( Connections( 1, data.connection ), cmd )
+    OCommand( Connections( 1, data.connection ), cmd, COMMANDTYPE_NODE )
         << node->getNodeID() << getType() << node->serialize();
 
     _impl->outMulticast.data = data.connection;
@@ -339,16 +339,16 @@ ConnectionPtr Node::_getMulticast() const
 
 OCommand Node::send( const uint32_t cmd, const bool multicast )
 {
-    ConnectionPtr connection = _getConnection( multicast );
-    LBASSERT( connection );
-    return OCommand( Connections( 1, connection ), cmd, COMMANDTYPE_NODE );
+    const Connections to( 1, _getConnection( multicast ));
+    LBASSERT( to.front( ));
+    return OCommand( to, cmd, COMMANDTYPE_NODE );
 }
 
 CustomOCommand Node::send( const uint128_t& commandID, const bool multicast )
 {
-    ConnectionPtr connection = _getConnection( multicast );
-    LBASSERT( connection );
-    return CustomOCommand( Connections( 1, connection ), commandID );
+    const Connections to( 1, _getConnection( multicast ));
+    LBASSERT( to.front( ));
+    return CustomOCommand( to, commandID );
 }
 
 const NodeID& Node::getNodeID() const

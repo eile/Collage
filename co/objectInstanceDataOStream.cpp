@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder  <cedric.stalder@gmail.com>
  *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -85,13 +85,12 @@ void ObjectInstanceDataOStream::push( const Nodes& receivers,
     _command = CMD_NODE_OBJECT_INSTANCE_PUSH;
     _nodeID = 0;
     _instanceID = CO_INSTANCE_NONE;
-    _setupConnections( receivers );
 
-    _resend();
-    OCommand( getConnections(), CMD_NODE_OBJECT_PUSH )
+    setup( receivers );
+    reemit();
+    OCommand( getConnections(), CMD_NODE_OBJECT_PUSH, COMMANDTYPE_NODE )
         << objectID << groupID << typeID;
-
-    _clearConnections();
+    clear();
 }
 
 void ObjectInstanceDataOStream::sync( const MasterCMCommand& command )
@@ -101,9 +100,10 @@ void ObjectInstanceDataOStream::sync( const MasterCMCommand& command )
     _command = CMD_NODE_OBJECT_INSTANCE_SYNC;
     _nodeID = node->getNodeID();
     _instanceID = command.getRequestID(); // ugh
-    _setupConnections( Nodes( 1, node ));
-    _resend();
-    _clearConnections();
+
+    setup( Nodes( 1, node ));
+    reemit();
+    clear();
 }
 
 void ObjectInstanceDataOStream::sendInstanceData( const Nodes& receivers )
@@ -111,9 +111,10 @@ void ObjectInstanceDataOStream::sendInstanceData( const Nodes& receivers )
     _command = CMD_NODE_OBJECT_INSTANCE;
     _nodeID = 0;
     _instanceID = CO_INSTANCE_NONE;
-    _setupConnections( receivers );
-    _resend();
-    _clearConnections();
+
+    setup( receivers );
+    reemit();
+    clear();
 }
 
 void ObjectInstanceDataOStream::sendMapData( NodePtr node,
@@ -122,9 +123,10 @@ void ObjectInstanceDataOStream::sendMapData( NodePtr node,
     _command = CMD_NODE_OBJECT_INSTANCE_MAP;
     _nodeID = node->getNodeID();
     _instanceID = instanceID;
-    _setupConnection( node, true /* useMulticast */ );
-    _resend();
-    _clearConnections();
+
+    setup( node, true /* useMulticast */ );
+    reemit();
+    clear();
 }
 
 void ObjectInstanceDataOStream::enableMap( const uint128_t& version,
@@ -135,15 +137,16 @@ void ObjectInstanceDataOStream::enableMap( const uint128_t& version,
     _nodeID = node->getNodeID();
     _instanceID = instanceID;
     _version = version;
-    _setupConnection( node, true /* useMulticast */ );
-    _enable();
+
+    setup( node, true /* useMulticast */ );
+    enable();
 }
 
-void ObjectInstanceDataOStream::sendData( const void*,
-                                          const uint64_t size, const bool last )
+void ObjectInstanceDataOStream::sendData( const CompressorResult& data,
+                                          const bool last )
 {
     LBASSERT( _command );
-    send( _command, COMMANDTYPE_NODE, _instanceID, size, last )
+    send( _command, COMMANDTYPE_NODE, _instanceID, data, last )
         << _nodeID << _cm->getObject()->getInstanceID();
 }
 

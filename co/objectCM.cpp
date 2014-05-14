@@ -20,6 +20,7 @@
 
 #include "objectCM.h"
 
+#include "compressorResult.h"
 #include "nodeCommand.h"
 #include "nullCM.h"
 #include "node.h"
@@ -68,7 +69,7 @@ void ObjectCM::push( const uint128_t& groupID, const uint128_t& typeID,
     _object->getInstanceData( os );
 
     // Send push notification to remote cmd thread while connections are valid
-    OCommand( os.getConnections(), CMD_NODE_OBJECT_PUSH )
+    OCommand( os.getConnections(), CMD_NODE_OBJECT_PUSH, COMMANDTYPE_NODE )
         << _object->getID() << groupID << typeID;
 
     os.disable(); // handled by remote recv thread
@@ -173,7 +174,7 @@ bool ObjectCM::_initSlave( const MasterCMCommand& command,
     os.enableMap( replyVersion, command.getNode(), command.getInstanceID( ));
     _object->getInstanceData( os );
     os.disable();
-    if( !os.hasSentData( ))
+    if( !os.hasData( ))
         // no data, send empty command to set version
         _sendEmptyVersion( command, replyVersion, true /* mc */ );
 
@@ -206,10 +207,11 @@ void ObjectCM::_sendEmptyVersion( const MasterCMCommand& command,
 {
     NodePtr node = command.getNode();
     ConnectionPtr connection = node->getConnection( multicast );
+    const CompressorResult data( 0, 0 );
 
     ObjectDataOCommand( Connections( 1, connection ), CMD_OBJECT_INSTANCE,
                         COMMANDTYPE_OBJECT, _object->getID(),
-                        command.getInstanceID(), version, 0, 0, true, 0 )
+                        command.getInstanceID(), version, data, 0, true, 0 )
             << NodeID() << _object->getInstanceID();
 }
 

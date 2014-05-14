@@ -1063,7 +1063,6 @@ bool ObjectStore::_cmdSync( ICommand& cmd )
     LB_TS_THREAD( _commandThread );
     MasterCMCommand command( cmd );
     const uint128_t& id = command.getObjectID();
-    LBINFO << command.getNode() << std::endl;
 
     LBLOG( LOG_OBJECTS ) << "Cmd sync object id " << id << "."
                          << command.getInstanceID() << " req "
@@ -1176,8 +1175,8 @@ bool ObjectStore::_cmdInstance( ICommand& inCommand )
     const uint32_t masterInstanceID = command.get< uint32_t >();
     const uint32_t cmd = command.getCommand();
 
-    LBLOG( LOG_OBJECTS ) << "Cmd instance " << command << " master "
-                         << masterInstanceID << " node " << nodeID << std::endl;
+    LBLOG( LOG_OBJECTS ) << "Instance " << command << " for " << nodeID
+                         << " master " << masterInstanceID << std::endl;
 
     command.setType( COMMANDTYPE_OBJECT );
     command.setCommand( CMD_OBJECT_INSTANCE );

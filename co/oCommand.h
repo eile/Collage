@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2013, Stefan.Eilemann@epfl.ch
+ *               2013-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -22,7 +22,7 @@
 #define CO_OCOMMAND_H
 
 #include <co/commands.h>       // for COMMANDTYPE_NODE
-#include <co/dataOStream.h>    // base class
+#include <co/connectionOStream.h>    // base class
 
 
 namespace co
@@ -37,7 +37,7 @@ namespace detail { class OCommand; }
  * The command is send or dispatched after it goes out of scope, i.e. during
  * destruction.
  */
-class OCommand : public DataOStream
+class OCommand : public ConnectionOStream
 {
 public:
     /** @internal
@@ -48,7 +48,7 @@ public:
      * @param type the command type for dispatching.
      */
     CO_API OCommand( const Connections& receivers, const uint32_t cmd,
-                     const uint32_t type = COMMANDTYPE_NODE );
+                     const uint32_t type );
 
     /** @internal
      * Construct a command which is dispatched locally typically to a co::Node.
@@ -59,9 +59,9 @@ public:
      * @param type the command type for dispatching.
      */
     CO_API OCommand( Dispatcher* const dispatcher, LocalNodePtr localNode,
-                     const uint32_t cmd, const uint32_t type=COMMANDTYPE_NODE );
+                     const uint32_t cmd, const uint32_t type );
 
-    /** @internal */
+    /** @internal "move" ctor */
     CO_API OCommand( const OCommand& rhs );
 
     /** Send or dispatch this command during destruction. */
@@ -70,26 +70,31 @@ public:
     /** @internal
      * Allow external send of data along with this command.
      *
-     * Locks all connections, which will be unlocked in the dtor after
-     * potentially send padding to fill up the send to COMMAND_MINSIZE.
+     * Atomically sends the current buffer, body and padding to fill up to
+     * COMMAND_MINSIZE.
      *
-     * @param additionalSize size in bytes of additional data after header.
+     * @param body the payload
      */
-    CO_API void sendHeader( const uint64_t additionalSize );
+    CO_API void send( const CompressorResult& body );
 
     /** @internal @return the static base header size of this command. */
     CO_API static size_t getSize();
 
 protected:
     /** @internal */
-    CO_API void sendData( const void* buffer, const uint64_t size,
-                                  const bool last ) override;
+    CO_API void sendData( const CompressorResult& data,
+                          const bool last ) override;
 
 private:
     OCommand& operator = ( const OCommand& );
     detail::OCommand* const _impl;
 
     void _init( const uint32_t cmd, const uint32_t type );
+
+    /** @internal @name DataIStream functions */
+    //@{
+    CO_API uint128_t getVersion() const override;
+    //@}
 };
 }
 

@@ -125,12 +125,11 @@ protected:
     CO_API bool isDirty() const override; //!< @internal
 
     /** @internal */
-    CO_API void serialize( DataOStream& os,
-                                   const uint64_t dirtyBits ) override;
+    CO_API void serialize( DataOStream& os, const uint64_t dirtyBits ) override;
 
     /** @internal */
-    CO_API void deserialize( DataIStream& is,
-                                     const uint64_t dirtyBits ) override;
+    CO_API void deserialize( DataIStream& is, const uint64_t ) override;
+
     /** @internal */
     ChangeType getChangeType() const override { return DELTA; }
     CO_API void notifyAttached() override; //!< @internal

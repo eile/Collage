@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *               2009-2010, Cedric Stalder <cedric.stalder@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -103,8 +103,8 @@ void DataIStream::_read( void* data, uint64_t size )
 {
     if( !_checkBuffer( ))
     {
-        LBUNREACHABLE;
         LBERROR << "No more input data" << std::endl;
+        LBUNREACHABLE;
         return;
     }
 
@@ -129,7 +129,10 @@ const void* DataIStream::getRemainingBuffer( const uint64_t size )
     if( !_checkBuffer( ))
         return 0;
 
-    LBASSERT( _impl->position + size <= _impl->inputSize );
+    LBASSERTINFO( _impl->position + size <= _impl->inputSize,
+                  "Can't get a buffer of " << size << " with " <<
+                  _impl->inputSize - _impl->position << " bytes left" );
+
     if( _impl->position + size > _impl->inputSize )
         return 0;
 

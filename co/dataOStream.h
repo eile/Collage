@@ -27,31 +27,38 @@
 
 #include <lunchbox/array.h> // used inline
 #include <lunchbox/nonCopyable.h> // base class
-#include <lunchbox/stdExt.h>
+#include <lunchbox/stdExt.h> // used inline
 
-#include <boost/type_traits.hpp>
-#include <map>
+#include <boost/type_traits.hpp> // is_pod
+#include <map> // this and below to serialize the data type
 #include <set>
 #include <vector>
 
 namespace co
 {
 namespace detail { class DataOStream; }
-namespace DataStreamTest { class Sender; }
 
 /**
  * A std::ostream-like interface for object serialization.
  *
  * Implements buffering, retaining and compressing data in a binary format.
- * Derived classes send the data using the appropriate commands.
+ * Derived classes emit the data using the appropriate implementation.
  */
 class DataOStream : public boost::noncopyable
 {
 public:
+    enum State
+    {
+        STATE_UNCOMPRESSED,
+        STATE_PARTIAL,
+        STATE_COMPLETE,
+        STATE_UNCOMPRESSIBLE
+    };
+
     /** @name Internal */
     //@{
     /** @internal Disable and flush the output to the current receivers. */
-    CO_API void disable();
+    CO_API virtual void disable();
 
     /** @internal Enable copying of all data into a saved buffer. */
     void enableSave();
@@ -60,30 +67,24 @@ public:
     void disableSave();
 
     /** @internal @return if data was sent since the last enable() */
-    CO_API bool hasSentData() const;
+    CO_API bool hasData() const;
+    //@}
 
-    /** @internal */
-    CO_API const Connections& getConnections() const;
-
-    /** @internal Stream the data header (compressor, nChunks). */
-    DataOStream& streamDataHeader( DataOStream& os );
-
-    /** @internal Send the (compressed) data using the given connection. */
-    void sendBody( ConnectionPtr connection, const uint64_t dataSize );
-
-    /** @internal @return the compressed data size, 0 if uncompressed.*/
-    uint64_t getCompressedDataSize() const;
+    /** @name Data access */
+    //@{
+    /** @return the version of the data contained in this stream. */
+    virtual uint128_t getVersion() const = 0;
     //@}
 
     /** @name Data output */
     //@{
     /** Write a plain data item by copying it to the stream. @version 1.0 */
     template< class T > DataOStream& operator << ( const T& value )
-    { _write( &value, sizeof( value )); return *this; }
+        { _write( &value, sizeof( value )); return *this; }
 
     /** Write a C array. @version 1.0 */
     template< class T > DataOStream& operator << ( const Array< T > array )
-    { _writeArray( array, boost::is_pod<T>( )); return *this; }
+        { _writeArray( array, boost::is_pod<T>( )); return *this; }
 
     /**
      * Write a lunchbox::RefPtr. Refcount has to managed by caller.
@@ -99,7 +100,7 @@ public:
     /** Transmit a request identifier. @version 1.1.1 */
     template< class T >
     DataOStream& operator << ( const lunchbox::Request<T>& request )
-    { return (*this) << request.getID(); }
+        { return (*this) << request.getID(); }
 
     /** Write a std::vector of serializable items. @version 1.0 */
     template< class T >
@@ -143,52 +144,31 @@ protected:
     void _initCompressor( const uint32_t compressor );
 
     /** @internal Enable output. */
-    CO_API void _enable();
+    CO_API void enable();
 
     /** @internal Flush remaining data in the buffer. */
     void flush( const bool last );
 
-    /** @internal Set up the connection list for a group of nodes, using
-     * multicast where possible.
-     */
-    void _setupConnections( const Nodes& receivers );
+    /** @internal Re-emit all buffered data. */
+    void reemit();
 
-    void _setupConnections( const Connections& connections );
+    /** @internal Emit a data buffer. */
+    virtual void emit( void* src, const uint64_t size, const State state,
+                       const bool last ) = 0;
 
-    /** @internal Set up the connection (list) for one node. */
-    void _setupConnection( NodePtr node, const bool useMulticast );
-
-    /** @internal Needed by unit test. */
-    CO_API void _setupConnection( ConnectionPtr connection );
-    friend class DataStreamTest::Sender;
-
-    /** @internal Resend the saved buffer to all enabled connections. */
-    void _resend();
-
-    void _clearConnections(); //!< @internal
-
-    /** @internal @name Data sending, used by the subclasses */
-    //@{
-    /** @internal Send a data buffer (command) to the receivers. */
-    virtual void sendData( const void* buffer, const uint64_t size,
-                           const bool last ) = 0;
-    //@}
-
+    /** @internal compress, if needed, and return the result. */
+    const CompressorResult& compress( void* src, const uint64_t size,
+                                      const State newState );
     /** @internal Reset the whole stream. */
     virtual CO_API void reset();
+
+    void setChunkSize( const uint64_t size ); //!< @internal
 
 private:
     detail::DataOStream* const _impl;
 
-    /** Collect compressed data. */
-    CO_API uint64_t _getCompressedData( void** chunks,
-                                        uint64_t* chunkSizes ) const;
-
     /** Write a number of bytes from data into the stream. */
     CO_API void _write( const void* data, uint64_t size );
-
-    /** Helper function preparing data for sendData() as needed. */
-    void _sendData( const void* data, const uint64_t size );
 
     /** Reset after sending a buffer. */
     void _resetBuffer();
@@ -207,7 +187,7 @@ private:
     /** Write an Array of POD data */
     template< class T >
     void _writeArray( const Array< T > array, const boost::true_type& )
-    { _write( array.data, array.getNumBytes( )); }
+        { _write( array.data, array.getNumBytes( )); }
 
     /** Write an Array of non-POD data */
     template< class T >
@@ -220,8 +200,6 @@ private:
     /** Send the trailing data (command) to the receivers */
     void _sendFooter( const void* buffer, const uint64_t size );
 };
-
-std::ostream& operator << ( std::ostream&, const DataOStream& );
 }
 
 #include "dataOStream.ipp" // template implementation

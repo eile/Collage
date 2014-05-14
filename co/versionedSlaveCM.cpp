@@ -76,7 +76,7 @@ uint128_t VersionedSlaveCM::commit( const uint32_t )
     _object->pack( _ostream );
     _ostream.disable();
 
-    return _ostream.hasSentData() ? _ostream.getVersion() : VERSION_NONE;
+    return _ostream.hasData() ? _ostream.getVersion() : VERSION_NONE;
 }
 
 uint128_t VersionedSlaveCM::sync( const uint128_t& v )

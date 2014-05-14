@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2012-2013, Stefan.Eilemann@epfl.ch
+ *               2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -21,8 +21,10 @@
 #include "objectDataOCommand.h"
 
 #include "buffer.h"
+#include "compressorResult.h"
 #include "objectDataICommand.h"
 #include <lunchbox/plugins/compressorTypes.h>
+#include <boost/foreach.hpp>
 
 namespace co
 {
@@ -33,24 +35,17 @@ namespace detail
 class ObjectDataOCommand
 {
 public:
-    ObjectDataOCommand( co::DataOStream* stream_, const uint64_t dataSize_ )
-        : dataSize( 0 )
+    ObjectDataOCommand( co::DataOStream* stream_, const CompressorResult& data_)
+        : data( data_ )
         , stream( stream_ )
-    {
-        if( stream )
-        {
-            dataSize = stream->getCompressedDataSize();
-            if( dataSize == 0 )
-                dataSize = dataSize_;
-        }
-    }
+    {}
 
     ObjectDataOCommand( const ObjectDataOCommand& rhs )
-        : dataSize( rhs.dataSize )
+        : data( rhs.data )
         , stream( rhs.stream )
     {}
 
-    uint64_t dataSize;
+    const CompressorResult& data;
     co::DataOStream* stream;
 };
 
@@ -61,14 +56,15 @@ ObjectDataOCommand::ObjectDataOCommand( const Connections& receivers,
                                         const UUID& id,
                                         const uint32_t instanceID,
                                         const uint128_t& version,
+                                        const CompressorResult& data,
                                         const uint32_t sequence,
-                                        const uint64_t dataSize,
                                         const bool isLast,
                                         DataOStream* stream )
     : ObjectOCommand( receivers, cmd, type, id, instanceID )
-    , _impl( new detail::ObjectDataOCommand( stream, dataSize ))
+    , _impl( new detail::ObjectDataOCommand( stream, data ))
 {
-    _init( version, sequence, dataSize, isLast );
+    *this << version << data.rawSize << sequence << isLast
+          << data.compressor << uint32_t( data.chunks.size( ));
 }
 
 ObjectDataOCommand::ObjectDataOCommand( const ObjectDataOCommand& rhs )
@@ -77,31 +73,10 @@ ObjectDataOCommand::ObjectDataOCommand( const ObjectDataOCommand& rhs )
 {
 }
 
-void ObjectDataOCommand::_init( const uint128_t& version,
-                                const uint32_t sequence,
-                                const uint64_t dataSize, const bool isLast )
-{
-    *this << version << dataSize << sequence << isLast;
-
-    if( _impl->stream )
-        _impl->stream->streamDataHeader( *this );
-    else
-        *this << EQ_COMPRESSOR_NONE << 0u; // compressor, nChunks
-}
-
 ObjectDataOCommand::~ObjectDataOCommand()
 {
-    if( _impl->stream && _impl->dataSize > 0 )
-    {
-        sendHeader( _impl->dataSize );
-        const Connections& connections = getConnections();
-        for( ConnectionsCIter i = connections.begin(); i != connections.end();
-             ++i )
-        {
-            ConnectionPtr conn = *i;
-            _impl->stream->sendBody( conn, _impl->dataSize );
-        }
-    }
+    if( _impl->stream && _impl->data.rawSize > 0 )
+        send( _impl->data );
 
     delete _impl;
 }

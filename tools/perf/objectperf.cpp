@@ -338,7 +338,7 @@ public:
         co::Nodes nodes;
         getNodes( nodes );
         const co::Connections& connections = co::gatherConnections( nodes );
-        co::OCommand( connections, CMD_NODE_OPERATION )
+        co::OCommand( connections, CMD_NODE_OPERATION, co::COMMANDTYPE_NODE )
             << uint64_t( (active_+1) % impls_.size() );
     }
 

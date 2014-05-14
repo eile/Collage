@@ -541,6 +541,7 @@ void LocalNode::_cleanup()
 
 void LocalNode::_closeNode( NodePtr node )
 {
+    LB_TS_THREAD( _rcvThread );
     ConnectionPtr connection = node->getConnection();
     ConnectionPtr mcConnection = node->_getMulticast();
 
@@ -1046,7 +1047,7 @@ uint32_t LocalNode::_connect( NodePtr node, ConnectionPtr connection )
 #else
     const uint32_t cmd = CMD_NODE_CONNECT;
 #endif
-    OCommand( Connections( 1, connection ), cmd )
+    OCommand( Connections( 1, connection ), cmd, COMMANDTYPE_NODE )
         << getNodeID() << request << getType() << serialize();
 
     bool connected = false;
@@ -1275,7 +1276,7 @@ void LocalNode::_handleDisconnect()
         node->ref(); // extend lifetime to give cmd handler a chance
 
         // local command dispatching
-        OCommand( this, this, CMD_NODE_REMOVE_NODE )
+        OCommand( this, this, CMD_NODE_REMOVE_NODE, COMMANDTYPE_NODE )
                 << node.get() << uint32_t( LB_UNDEFINED_UINT32 );
 
         if( node->getConnection() == connection )
@@ -1625,7 +1626,7 @@ bool LocalNode::_cmdConnect( ICommand& command )
                    << std::endl;
 
             // refuse connection
-            OCommand( Connections( 1, connection ), cmd )
+            OCommand( Connections( 1, connection ), cmd, COMMANDTYPE_NODE )
                 << NodeID() << requestID;
 
             // NOTE: There is no close() here. The reply command above has to be
@@ -1644,7 +1645,8 @@ bool LocalNode::_cmdConnect( ICommand& command )
                << std::endl;
 
         // refuse connection
-        OCommand( Connections( 1, connection ), cmd ) << NodeID() << requestID;
+        OCommand( Connections( 1, connection ), cmd, COMMANDTYPE_NODE )
+            << NodeID() << requestID;
 
         // NOTE: There is no close() here. The reply command above has to be
         // received by the peer first, before closing the connection.
@@ -1667,7 +1669,7 @@ bool LocalNode::_cmdConnect( ICommand& command )
     LBVERB << "Added node " << nodeID << std::endl;
 
     // send our information as reply
-    OCommand( Connections( 1, connection ), cmd )
+    OCommand( Connections( 1, connection ), cmd, COMMANDTYPE_NODE )
         << getNodeID() << requestID << getType() << serialize();
 
     return true;
@@ -1745,7 +1747,8 @@ bool LocalNode::_cmdConnectReply( ICommand& command )
     LBASSERT( peer->getNodeID() == nodeID );
 
     // send ACK to peer
-    OCommand( Connections( 1, connection ), CMD_NODE_CONNECT_ACK );
+    OCommand( Connections( 1, connection ), CMD_NODE_CONNECT_ACK,
+              COMMANDTYPE_NODE );
 
     peer->_connect( connection );
     _impl->connectionNodes[ connection ] = peer;

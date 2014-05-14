@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2010-2013, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2010-2014, Stefan Eilemann <eile@eyescale.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -34,8 +34,7 @@ namespace co
         void enableSlaveCommit( NodePtr node );
 
     protected:
-        void sendData( const void* buffer, const uint64_t size,
-                               const bool last ) override;
+        void sendData( const CompressorResult& data, const bool last ) override;
 
     private:
         UUID _commit;

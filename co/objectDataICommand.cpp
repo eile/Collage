@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2012-2013, Stefan.Eilemann@epfl.ch
+ *               2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -121,7 +121,9 @@ std::ostream& operator << ( std::ostream& os, const ObjectDataICommand& command 
     if( command.isValid( ))
     {
         os << " v" << command.getVersion() << " size " << command.getDataSize()
-           << " seq " << command.getSequence() << " last " << command.isLast();
+           << " seq " << command.getSequence() << " last " << command.isLast()
+           << ", " << command.getChunks() << " chunks using "
+           << command.getCompressor();
     }
     return os;
 }

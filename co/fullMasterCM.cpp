@@ -358,7 +358,7 @@ void FullMasterCM::_commit()
     _object->getInstanceData( instanceData->os );
     instanceData->os.disable();
 
-    if( instanceData->os.hasSentData( ))
+    if( instanceData->os.hasData( ))
     {
         ++_version;
         LBASSERT( _version != VERSION_NONE );

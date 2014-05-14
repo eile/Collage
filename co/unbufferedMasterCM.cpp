@@ -60,14 +60,12 @@ uint128_t UnbufferedMasterCM::commit( const uint32_t )
     _object->pack( os );
     os.disable();
 
-    if( os.hasSentData( ))
+    if( os.hasData( ))
     {
         ++_version;
         LBASSERT( _version != VERSION_NONE );
-#if 0
         LBLOG( LOG_OBJECTS ) << "Committed v" << _version << ", id "
                              << _object->getID() << std::endl;
-#endif
     }
 
     return _version;

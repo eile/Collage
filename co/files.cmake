@@ -14,6 +14,7 @@ set(COLLAGE_PUBLIC_HEADERS
   commands.h
   connection.h
   connectionDescription.h
+  connectionOStream.h
   connectionSet.h
   connectionType.h
   customICommand.h
@@ -98,6 +99,7 @@ set(COLLAGE_SOURCES
   commandQueue.cpp
   connection.cpp
   connectionDescription.cpp
+  connectionOStream.cpp
   connectionSet.cpp
   customICommand.cpp
   customOCommand.cpp

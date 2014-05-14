@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2007-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder  <cedric.stalder@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -33,8 +33,7 @@ namespace co
         virtual ~ObjectDeltaDataOStream();
 
     protected:
-        void sendData( const void* buffer, const uint64_t size,
-                               const bool last ) override;
+        void sendData( const CompressorResult& data, const bool last ) override;
     };
 }
 #endif //CO_OBJECTDELTADATAOSTREAM_H

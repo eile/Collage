@@ -51,13 +51,13 @@ void ObjectDataOStream::enableCommit( const uint128_t& version,
                                       const Nodes& receivers )
 {
     _version = version;
-    _setupConnections( receivers );
-    _enable();
+    setup( receivers );
+    enable();
 }
 
 ObjectDataOCommand ObjectDataOStream::send(
     const uint32_t cmd, const uint32_t type, const uint32_t instanceID,
-    const uint64_t size, const bool last )
+    const CompressorResult& data, const bool last )
 {
     LBASSERT( _version != VERSION_INVALID );
     const uint32_t sequence = _sequence++;
@@ -66,7 +66,7 @@ ObjectDataOCommand ObjectDataOStream::send(
 
     return ObjectDataOCommand( getConnections(), cmd, type,
                                _cm->getObject()->getID(), instanceID, _version,
-                               sequence, size, last, this );
+                               data, sequence, last, this );
 }
 
 }

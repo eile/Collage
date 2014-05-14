@@ -1,6 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
- *               2013, Stefan.Eilemann@epfl.ch
+ *               2013-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -21,6 +21,7 @@
 #include "oCommand.h"
 
 #include "buffer.h"
+#include "compressorResult.h"
 #include "iCommand.h"
 
 namespace co
@@ -33,13 +34,13 @@ class OCommand
 public:
     OCommand( co::Dispatcher* const dispatcher_, LocalNodePtr localNode_ )
         : isLocked( false )
-        , size( 0 )
+        , bodySize( 0 )
         , dispatcher( dispatcher_ )
         , localNode( localNode_ )
     {}
 
     bool isLocked;
-    uint64_t size;
+    uint64_t bodySize;
     co::Dispatcher* const dispatcher;
     LocalNodePtr localNode;
 };
@@ -48,64 +49,37 @@ public:
 
 OCommand::OCommand( const Connections& receivers, const uint32_t cmd,
                     const uint32_t type )
-    : DataOStream()
-    , _impl( new detail::OCommand( 0, 0 ))
+    : _impl( new detail::OCommand( 0, 0 ))
 {
-    _setupConnections( receivers );
+    setChunkSize( std::numeric_limits< uint64_t >::max( ));
+    setup( receivers );
     _init( cmd, type );
 }
 
 OCommand::OCommand( Dispatcher* const dispatcher, LocalNodePtr localNode,
                     const uint32_t cmd, const uint32_t type )
-    : DataOStream()
-    , _impl( new detail::OCommand( dispatcher, localNode ))
+    : _impl( new detail::OCommand( dispatcher, localNode ))
 {
+    setChunkSize( std::numeric_limits< uint64_t >::max( ));
     _init( cmd, type );
 }
 
 OCommand::OCommand( const OCommand& rhs )
-    : DataOStream( const_cast< OCommand& >( rhs ))
+    : ConnectionOStream( const_cast< OCommand& >( rhs ))
     , _impl( new detail::OCommand( *rhs._impl ))
 {
 }
 
 OCommand::~OCommand()
 {
-    if( _impl->isLocked )
-    {
-        LBASSERT( _impl->size > 0 );
-        const uint64_t size = _impl->size + getBuffer().getSize();
-        const Connections& connections = getConnections();
-        if( size < COMMAND_MINSIZE ) // Fill send to minimal size
-        {
-            const size_t delta = COMMAND_MINSIZE - size;
-            void* padding = alloca( delta );
-            for( ConnectionsCIter i = connections.begin();
-                 i != connections.end(); ++i )
-            {
-                ConnectionPtr connection = *i;
-                connection->send( padding, delta, true );
-            }
-        }
-        for( ConnectionsCIter i = connections.begin();
-             i != connections.end(); ++i )
-        {
-            ConnectionPtr connection = *i;
-            connection->unlockSend();
-        }
-        _impl->isLocked = false;
-        _impl->size = 0;
-        reset();
-    }
-    else
-        disable();
+    disable();
 
     if( _impl->dispatcher )
     {
         LBASSERT( _impl->localNode );
 
         // #145 proper local command dispatch?
-        LBASSERT( _impl->size == 0 );
+        LBASSERT( _impl->bodySize == 0 );
         const uint64_t size = getBuffer().getSize();
         BufferPtr buffer = _impl->localNode->allocBuffer( size );
         buffer->swap( getBuffer( ));
@@ -125,25 +99,58 @@ void OCommand::_init( const uint32_t cmd, const uint32_t type )
     LBASSERTINFO( cmd < CMD_NODE_MAXIMUM, std::hex << "0x" << cmd << std::dec );
 #endif
     enableSave();
-    _enable();
+    enable();
     *this << 0ull /* size */ << type << cmd;
 }
 
-void OCommand::sendHeader( const uint64_t additionalSize )
+void OCommand::send( const CompressorResult& body )
 {
     LBASSERT( !_impl->dispatcher );
     LBASSERT( !_impl->isLocked );
-    LBASSERT( additionalSize > 0 );
+    LBASSERT( body.compressor != EQ_COMPRESSOR_NONE ||
+              body.chunks.size() == 1 );
 
     const Connections& connections = getConnections();
-    for( ConnectionsCIter i = connections.begin(); i != connections.end(); ++i )
-    {
-        ConnectionPtr connection = *i;
+    BOOST_FOREACH( ConnectionPtr connection, connections )
         connection->lockSend();
-    }
+
+    // header
     _impl->isLocked = true;
-    _impl->size = additionalSize;
+    _impl->bodySize = body.getSize();
+    if( body.compressor != EQ_COMPRESSOR_NONE )
+        _impl->bodySize += body.chunks.size() * sizeof( uint64_t );
+    LBASSERT( _impl->bodySize > 0 );
+
     flush( true );
+
+    // body
+    BOOST_FOREACH( const lunchbox::CompressorChunk& chunk, body.chunks )
+    {
+        const uint64_t size = chunk.getNumBytes();
+        BOOST_FOREACH( ConnectionPtr connection, connections )
+        {
+            if( body.compressor != EQ_COMPRESSOR_NONE )
+                LBCHECK( connection->send( &size, sizeof( size ), true ));
+            if( size > 0 )
+                LBCHECK( connection->send( chunk.data, size, true ));
+        }
+    }
+
+    // padding
+    const uint64_t size = _impl->bodySize + getBuffer().getSize();
+    if( size < COMMAND_MINSIZE ) // Fill send to minimal size
+    {
+        const size_t delta = COMMAND_MINSIZE - size;
+        void* padding = alloca( delta );
+        BOOST_FOREACH( ConnectionPtr connection, connections )
+            connection->send( padding, delta, true );
+    }
+    BOOST_FOREACH( ConnectionPtr connection, connections )
+        connection->unlockSend();
+
+    _impl->isLocked = false;
+    _impl->bodySize = 0;
+    reset();
 }
 
 size_t OCommand::getSize()
@@ -151,25 +158,39 @@ size_t OCommand::getSize()
     return sizeof( uint64_t ) + sizeof( uint32_t ) + sizeof( uint32_t );
 }
 
-void OCommand::sendData( const void* buffer LB_UNUSED, const uint64_t size,
+uint128_t OCommand::getVersion() const
+{
+    return VERSION_NONE;
+}
+
+void OCommand::sendData( const CompressorResult& data,
                          const bool last LB_UNUSED )
 {
     LBASSERT( !_impl->dispatcher );
     LBASSERT( last );
-    LBASSERTINFO( size >= 16, size );
-    LBASSERT( getBuffer().getData() == buffer );
+    LBASSERT( data.compressor == EQ_COMPRESSOR_NONE );
+
+    if( data.chunks.size() != 1 )
+    {
+        LBASSERT( data.chunks.size() == 1 );
+        return;
+    }
+
+    const lunchbox::CompressorChunk& chunk = data.chunks.front();
+    const uint64_t size = chunk.getNumBytes();
+    LBASSERT( getBuffer().getData() == chunk.data );
     LBASSERT( getBuffer().getSize() == size );
+    LBASSERT( data.rawSize == size );
     LBASSERT( getBuffer().getMaxSize() >= COMMAND_MINSIZE );
 
     // Update size field
-    uint8_t* bytes = getBuffer().getData();
-    reinterpret_cast< uint64_t* >( bytes )[ 0 ] = _impl->size + size;
+    uint8_t* bytes = (uint8_t*)( chunk.data );
+    reinterpret_cast< uint64_t* >( bytes )[ 0 ] = _impl->bodySize + size;
     const uint64_t sendSize = _impl->isLocked ? size : LB_MAX( size,
                                                                COMMAND_MINSIZE);
     const Connections& connections = getConnections();
-    for( ConnectionsCIter i = connections.begin(); i != connections.end(); ++i )
+    BOOST_FOREACH( ConnectionPtr connection, connections )
     {
-        ConnectionPtr connection = *i;
         if ( connection )
             connection->send( bytes, sendSize, _impl->isLocked );
         else
