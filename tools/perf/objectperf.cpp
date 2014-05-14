@@ -375,10 +375,10 @@ private:
 
     bool cmdParams_( co::ICommand& command )
     {
-        NodePtr node = static_cast< ::Node* >( command.getNode().get( ));
-        const uint64_t size = command.get< uint64_t >();
-        const uint64_t num = command.get< uint64_t >();
-        const bool canChange = command.get< bool >();
+        NodePtr node = static_cast< ::Node* >( command.getRemoteNode().get( ));
+        const uint64_t size = command.read< uint64_t >();
+        const uint64_t num = command.read< uint64_t >();
+        const bool canChange = command.read< bool >();
 
         if( size != objectSize || num != nObjects )
         {
@@ -389,7 +389,7 @@ private:
                     objectSize = size;
                 if( nObjects <= treeWidth )
                     nObjects = num;
-                if( getNodeID() < command.getNode()->getNodeID( ))
+                if( getNodeID() < node->getNodeID( ))
                 {
                     if( size != 0 )
                         objectSize = size;
@@ -422,14 +422,14 @@ private:
 
     bool cmdSetup_( co::ICommand& command )
     {
-        NodePtr node = static_cast< ::Node* >( command.getNode().get( ));
+        NodePtr node = static_cast< ::Node* >( command.getRemoteNode().get( ));
         node->setState( ::Node::STATE_RUNNING );
         return true;
     }
 
     bool cmdOperation_( co::ICommand& command )
     {
-        const uint64_t next = command.get< uint64_t >();
+        const uint64_t next = command.read< uint64_t >();
         if( next >= impls_.size( )) // may happen during join
             return true;
 

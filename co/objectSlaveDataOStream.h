@@ -28,7 +28,7 @@ namespace co
     class ObjectSlaveDataOStream : public ObjectDataOStream
     {
     public:
-        ObjectSlaveDataOStream( const ObjectCM* cm );
+        explicit ObjectSlaveDataOStream( const ObjectCM* cm );
         virtual ~ObjectSlaveDataOStream();
 
         void enableSlaveCommit( NodePtr node );

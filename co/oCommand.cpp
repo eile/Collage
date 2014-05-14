@@ -49,7 +49,8 @@ public:
 
 OCommand::OCommand( const Connections& receivers, const uint32_t cmd,
                     const uint32_t type )
-    : _impl( new detail::OCommand( 0, 0 ))
+    : ConnectionOStream( true /*save*/ )
+    , _impl( new detail::OCommand( 0, 0 ))
 {
     setChunkSize( std::numeric_limits< uint64_t >::max( ));
     setup( receivers );
@@ -58,7 +59,8 @@ OCommand::OCommand( const Connections& receivers, const uint32_t cmd,
 
 OCommand::OCommand( Dispatcher* const dispatcher, LocalNodePtr localNode,
                     const uint32_t cmd, const uint32_t type )
-    : _impl( new detail::OCommand( dispatcher, localNode ))
+    : ConnectionOStream( true /*save*/ )
+    , _impl( new detail::OCommand( dispatcher, localNode ))
 {
     setChunkSize( std::numeric_limits< uint64_t >::max( ));
     _init( cmd, type );
@@ -72,23 +74,9 @@ OCommand::OCommand( const OCommand& rhs )
 
 OCommand::~OCommand()
 {
-    disable();
-
+    close();
     if( _impl->dispatcher )
-    {
-        LBASSERT( _impl->localNode );
-
-        // #145 proper local command dispatch?
-        LBASSERT( _impl->bodySize == 0 );
-        const uint64_t size = getBuffer().getSize();
-        BufferPtr buffer = _impl->localNode->allocBuffer( size );
-        buffer->swap( getBuffer( ));
-        reinterpret_cast< uint64_t* >( buffer->getData( ))[ 0 ] = size;
-
-        ICommand cmd( _impl->localNode, _impl->localNode, buffer, false );
-        _impl->dispatcher->dispatchCommand( cmd );
-    }
-
+        _localDispatch();
     delete _impl;
 }
 
@@ -98,8 +86,7 @@ void OCommand::_init( const uint32_t cmd, const uint32_t type )
     // big endian hosts swap handshake commands to little endian...
     LBASSERTINFO( cmd < CMD_NODE_MAXIMUM, std::hex << "0x" << cmd << std::dec );
 #endif
-    enableSave();
-    enable();
+    open();
     *this << 0ull /* size */ << type << cmd;
 }
 
@@ -172,7 +159,8 @@ void OCommand::sendData( const CompressorResult& data,
 
     if( data.chunks.size() != 1 )
     {
-        LBASSERT( data.chunks.size() == 1 );
+        LBASSERTINFO( data.chunks.size() == 1,
+                      "Can only send unchunked data for oCommand" );
         return;
     }
 
@@ -184,10 +172,10 @@ void OCommand::sendData( const CompressorResult& data,
     LBASSERT( getBuffer().getMaxSize() >= COMMAND_MINSIZE );
 
     // Update size field
-    uint8_t* bytes = (uint8_t*)( chunk.data );
+    uint8_t* bytes = reinterpret_cast< uint8_t* >( chunk.data );
     reinterpret_cast< uint64_t* >( bytes )[ 0 ] = _impl->bodySize + size;
-    const uint64_t sendSize = _impl->isLocked ? size : LB_MAX( size,
-                                                               COMMAND_MINSIZE);
+    const uint64_t sendSize = _impl->isLocked ? size
+                                              : LB_MAX( size, COMMAND_MINSIZE );
     const Connections& connections = getConnections();
     BOOST_FOREACH( ConnectionPtr connection, connections )
     {
@@ -196,6 +184,22 @@ void OCommand::sendData( const CompressorResult& data,
         else
             LBERROR << "Can't send data, node is closed" << std::endl;
     }
+}
+
+void OCommand::_localDispatch()
+{
+    LBASSERT( _impl->dispatcher );
+    LBASSERT( _impl->localNode );
+
+    // #145 proper local command dispatch?
+    LBASSERT( _impl->bodySize == 0 );
+    const uint64_t size = getBuffer().getSize();
+    BufferPtr buffer = _impl->localNode->allocBuffer( size );
+    buffer->swap( getBuffer( ));
+    reinterpret_cast< uint64_t* >( buffer->getData( ))[ 0 ] = size;
+
+    ICommand cmd( _impl->localNode, _impl->localNode, buffer, false );
+    _impl->dispatcher->dispatchCommand( cmd );
 }
 
 }

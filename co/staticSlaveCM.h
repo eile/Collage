@@ -33,7 +33,7 @@ namespace co
     class StaticSlaveCM : public ObjectCM
     {
     public:
-        StaticSlaveCM( Object* object );
+        explicit StaticSlaveCM( Object* object );
         virtual ~StaticSlaveCM();
 
         void init() override {}
@@ -64,7 +64,7 @@ namespace co
     private:
         /* The command handlers. */
         bool _cmdInstance( ICommand& command );
-        LB_TS_VAR( _rcvThread );
+        LB_TS_VAR( _rcvThread )
     };
 }
 

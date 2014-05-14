@@ -65,12 +65,6 @@ public:
     /** @return the command payload size. @version 1.0 */
     CO_API uint64_t getSize() const;
 
-    /** @deprecated use read() */
-    template< typename T > T get() { return read< T >(); }
-
-    /** @deprecated use getRemoteNode() */
-    NodePtr getNode() const { return getRemoteNode(); }
-
     /** @return the sending node proxy instance. @version 1.1.1 */
     CO_API NodePtr getRemoteNode() const override;
 

@@ -24,7 +24,6 @@
 #include "compressorResult.h"
 #include "objectDataICommand.h"
 #include <lunchbox/plugins/compressorTypes.h>
-#include <boost/foreach.hpp>
 
 namespace co
 {
@@ -35,18 +34,15 @@ namespace detail
 class ObjectDataOCommand
 {
 public:
-    ObjectDataOCommand( co::DataOStream* stream_, const CompressorResult& data_)
+    explicit ObjectDataOCommand( const CompressorResult& data_)
         : data( data_ )
-        , stream( stream_ )
     {}
 
-    ObjectDataOCommand( const ObjectDataOCommand& rhs )
+    explicit ObjectDataOCommand( const ObjectDataOCommand& rhs )
         : data( rhs.data )
-        , stream( rhs.stream )
     {}
 
     const CompressorResult& data;
-    co::DataOStream* stream;
 };
 
 }
@@ -58,10 +54,9 @@ ObjectDataOCommand::ObjectDataOCommand( const Connections& receivers,
                                         const uint128_t& version,
                                         const CompressorResult& data,
                                         const uint32_t sequence,
-                                        const bool isLast,
-                                        DataOStream* stream )
+                                        const bool isLast)
     : ObjectOCommand( receivers, cmd, type, id, instanceID )
-    , _impl( new detail::ObjectDataOCommand( stream, data ))
+    , _impl( new detail::ObjectDataOCommand( data ))
 {
     *this << version << data.rawSize << sequence << isLast
           << data.compressor << uint32_t( data.chunks.size( ));
@@ -75,7 +70,7 @@ ObjectDataOCommand::ObjectDataOCommand( const ObjectDataOCommand& rhs )
 
 ObjectDataOCommand::~ObjectDataOCommand()
 {
-    if( _impl->stream && _impl->data.rawSize > 0 )
+    if( _impl->data.rawSize > 0 )
         send( _impl->data );
 
     delete _impl;

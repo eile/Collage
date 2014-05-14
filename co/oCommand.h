@@ -21,7 +21,6 @@
 #ifndef CO_OCOMMAND_H
 #define CO_OCOMMAND_H
 
-#include <co/commands.h>       // for COMMANDTYPE_NODE
 #include <co/connectionOStream.h>    // base class
 
 
@@ -90,6 +89,7 @@ private:
     detail::OCommand* const _impl;
 
     void _init( const uint32_t cmd, const uint32_t type );
+    void _localDispatch();
 
     /** @internal @name DataIStream functions */
     //@{

@@ -42,7 +42,7 @@ public:
     {
         TEST( command.getCommandID() == cmdID2 );
         gotCmd2 = true;
-        TEST( command.get< std::string >() == "hello" );
+        TEST( command.read< std::string >() == "hello" );
         return true;
     }
 };

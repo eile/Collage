@@ -27,10 +27,11 @@
 
 namespace co
 {
-ObjectDataOStream::ObjectDataOStream( const ObjectCM* cm )
-        : _cm( cm )
-        , _version( VERSION_INVALID )
-        , _sequence( 0 )
+ObjectDataOStream::ObjectDataOStream( const ObjectCM* cm, const bool save )
+    : ConnectionOStream( save )
+    , _cm( cm )
+    , _version( VERSION_INVALID )
+    , _sequence( 0 )
 {
     const Object* object = cm->getObject();
     const uint32_t name = object->chooseCompressor();
@@ -51,8 +52,8 @@ void ObjectDataOStream::enableCommit( const uint128_t& version,
                                       const Nodes& receivers )
 {
     _version = version;
-    setup( receivers );
-    enable();
+    setup( receivers, true /* multicast */ );
+    open();
 }
 
 ObjectDataOCommand ObjectDataOStream::send(
@@ -66,7 +67,7 @@ ObjectDataOCommand ObjectDataOStream::send(
 
     return ObjectDataOCommand( getConnections(), cmd, type,
                                _cm->getObject()->getID(), instanceID, _version,
-                               data, sequence, last, this );
+                               data, sequence, last );
 }
 
 }

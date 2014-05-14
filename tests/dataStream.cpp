@@ -50,6 +50,7 @@ class DataOStream : public co::ConnectionOStream
 {
 public:
     DataOStream()
+        : co::ConnectionOStream( false /*save*/ )
     {
         const uint32_t name =
             lunchbox::Compressor::choose( co::Global::getPluginRegistry(),
@@ -63,7 +64,7 @@ protected:
     {
         co::ObjectDataOCommand( getConnections(), co::CMD_OBJECT_DELTA,
                                 co::COMMANDTYPE_OBJECT, co::UUID(), 0,
-                                co::uint128_t(), data, 0, last, this );
+                                co::uint128_t(), data, 0, last );
     }
 
     co::uint128_t getVersion() const override { return co::VERSION_NONE; }
@@ -132,7 +133,7 @@ protected:
         ::DataOStream stream;
 
         stream.setup( co::Connections( 1, _connection ));
-        stream.enable();
+        stream.open();
 
         int foo = 42;
         stream << foo;
@@ -154,7 +155,7 @@ protected:
         std::string strings[2] = { _message, _lorem };
         stream << co::Array< std::string >( strings, 2 );
         std::cout << stream << std::endl;
-        stream.disable();
+        stream.close();
     }
 
 private:

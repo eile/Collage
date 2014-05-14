@@ -58,7 +58,7 @@ uint128_t UnbufferedMasterCM::commit( const uint32_t )
     ObjectDeltaDataOStream os( this );
     os.enableCommit( _version + 1, *_slaves );
     _object->pack( os );
-    os.disable();
+    os.close();
 
     if( os.hasData( ))
     {

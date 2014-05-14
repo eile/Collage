@@ -176,11 +176,11 @@ bool ObjectDataIStream::getNextBuffer( uint32_t& compressor, uint32_t& nChunks,
     switch( command.getCommand( ))
     {
       case CMD_OBJECT_INSTANCE:
-        command.get< NodeID >();    // nodeID
-        command.get< uint32_t >();  // instanceID
+        command.read< NodeID >();    // nodeID
+        command.read< uint32_t >();  // instanceID
         break;
       case CMD_OBJECT_SLAVE_DELTA:
-        command.get< UUID >();      // commit UUID
+        command.read< UUID >();      // commit UUID
         break;
     }
 

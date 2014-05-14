@@ -54,13 +54,13 @@ int main( int argc, char **argv )
 
         TEST( c1.isValid( ));
         TEST( c2.isValid( ));
-        TEST( c2.get< uint32_t >() == 42u )
+        TEST( c2.read< uint32_t >() == 42u )
         TEST( c3.isValid( ));
-        TEST( c3.get< std::string >() == "hallo" )
+        TEST( c3.read< std::string >() == "hallo" )
         TEST( c4.isValid( ));
-        TEST( c4.get< float >() == 1.5f )
-        TEST( c4.get< bool >() == false )
-        TEST( c4.get< co::uint128_t >() == co::VERSION_FIRST )
+        TEST( c4.read< float >() == 1.5f )
+        TEST( c4.read< bool >() == false )
+        TEST( c4.read< co::uint128_t >() == co::VERSION_FIRST )
         TEST( !c5.isValid( ));
     }
 

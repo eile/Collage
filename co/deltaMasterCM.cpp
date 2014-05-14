@@ -46,7 +46,7 @@ void DeltaMasterCM::_commit()
         _deltaData.reset();
         _deltaData.enableCommit( _version + 1, *_slaves );
         _object->pack( _deltaData );
-        _deltaData.disable();
+        _deltaData.close();
     }
 
     if( _slaves->empty() || _deltaData.hasData( ))
@@ -56,7 +56,7 @@ void DeltaMasterCM::_commit()
 
         instanceData->os.enableCommit( _version + 1, Nodes( ));
         _object->getInstanceData( instanceData->os );
-        instanceData->os.disable();
+        instanceData->os.close();
 
         if( _deltaData.hasData() || instanceData->os.hasData( ))
         {

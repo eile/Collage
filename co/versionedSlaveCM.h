@@ -101,8 +101,8 @@ namespace co
         /* The command handlers. */
         bool _cmdData( ICommand& command );
 
-        LB_TS_VAR( _cmdThread );
-        LB_TS_VAR( _rcvThread );
+        LB_TS_VAR( _cmdThread )
+        LB_TS_VAR( _rcvThread )
     };
 }
 

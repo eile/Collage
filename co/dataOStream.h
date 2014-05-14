@@ -47,26 +47,12 @@ namespace detail { class DataOStream; }
 class DataOStream : public boost::noncopyable
 {
 public:
-    enum State
-    {
-        STATE_UNCOMPRESSED,
-        STATE_PARTIAL,
-        STATE_COMPLETE,
-        STATE_UNCOMPRESSIBLE
-    };
-
     /** @name Internal */
     //@{
-    /** @internal Disable and flush the output to the current receivers. */
-    CO_API virtual void disable();
+    /** @internal Close stream and emit remaining data. */
+    CO_API virtual void close();
 
-    /** @internal Enable copying of all data into a saved buffer. */
-    void enableSave();
-
-    /** @internal Disable copying of all data into a saved buffer. */
-    void disableSave();
-
-    /** @internal @return if data was sent since the last enable() */
+    /** @internal @return if data was emitted since the last open() */
     CO_API bool hasData() const;
     //@}
 
@@ -87,7 +73,7 @@ public:
         { _writeArray( array, boost::is_pod<T>( )); return *this; }
 
     /**
-     * Write a lunchbox::RefPtr. Refcount has to managed by caller.
+     * Write a lunchbox::RefPtr. Refcount has to be managed by caller.
      * @version 1.1
      */
     template< class T >
@@ -133,41 +119,59 @@ public:
     //@}
 
 protected:
-    CO_API DataOStream(); //!< @internal
+    friend class detail::DataOStream;
+    enum State
+    {
+        STATE_UNCOMPRESSED,
+        STATE_PARTIAL,
+        STATE_COMPLETE,
+        STATE_UNCOMPRESSIBLE,
+        STATE_DONT_COMPRESS
+    };
+
+    /** @internal
+     * @param save enable/disable copying of written data into a saved buffer
+     */
+    CO_API explicit DataOStream( const bool save );
     DataOStream( DataOStream& rhs );  //!< @internal
     virtual CO_API ~DataOStream(); //!< @internal
 
-    /** @internal */
+    /** @internal @return written, not emitted data */
     CO_API lunchbox::Bufferb& getBuffer();
 
     /** @internal Initialize the given compressor. */
     void _initCompressor( const uint32_t compressor );
 
-    /** @internal Enable output. */
-    CO_API void enable();
+    /** @internal Open stream to write and emit data. */
+    CO_API void open();
 
-    /** @internal Flush remaining data in the buffer. */
+    /** @internal Emit written data since the last emitData(). */
     void flush( const bool last );
 
-    /** @internal Re-emit all buffered data. */
-    void reemit();
+    /** @internal Re-emit all buffered data; requires save buffer (see ctor) */
+    void reemitData();
 
     /** @internal Emit a data buffer. */
-    virtual void emit( void* src, const uint64_t size, const State state,
-                       const bool last ) = 0;
+    virtual void emitData( const CompressorResult& data, const bool last ) = 0;
 
-    /** @internal compress, if needed, and return the result. */
-    const CompressorResult& compress( void* src, const uint64_t size,
-                                      const State newState );
     /** @internal Reset the whole stream. */
     virtual CO_API void reset();
 
-    void setChunkSize( const uint64_t size ); //!< @internal
+    /** @internal Set flush granularity, default co::getObjectBufferSize() */
+    void setChunkSize( const uint64_t size );
+
+    /** @internal compress, if needed, and return the result. */
+    virtual const CompressorResult& compress( void* data, const uint64_t size,
+                                              const State newState );
 
 private:
+    DataOStream();
     detail::DataOStream* const _impl;
 
-    /** Write a number of bytes from data into the stream. */
+    /**
+     * Write data into to the stream buffer; will flush based on chunk size, see
+     * setChunkSize()
+     */
     CO_API void _write( const void* data, uint64_t size );
 
     /** Reset after sending a buffer. */
@@ -196,10 +200,10 @@ private:
         for( size_t i = 0; i < array.num; ++i )
             *this << array.data[ i ];
     }
-
-    /** Send the trailing data (command) to the receivers */
-    void _sendFooter( const void* buffer, const uint64_t size );
 };
+
+std::ostream& operator << ( std::ostream&, const DataOStream& );
+
 }
 
 #include "dataOStream.ipp" // template implementation

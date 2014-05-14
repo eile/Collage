@@ -221,9 +221,9 @@ bool Barrier::_cmdEnter( ICommand& cmd )
                   _impl->master );
 
     ObjectICommand command( cmd );
-    const uint128_t version = command.get< uint128_t >();
-    const uint32_t incarnation = command.get< uint32_t >();
-    const uint32_t timeout = command.get< uint32_t >();
+    const uint128_t& version = command.read< uint128_t >();
+    const uint32_t incarnation = command.read< uint32_t >();
+    const uint32_t timeout = command.read< uint32_t >();
 
     LBLOG( LOG_BARRIER ) << "handle barrier enter " << command
                          << " v" << version
@@ -249,7 +249,7 @@ bool Barrier::_cmdEnter( ICommand& cmd )
         if( request.incarnation < incarnation )
         {
             // send directly the reply command to unblock the caller
-            _sendNotify( version, command.getNode( ));
+            _sendNotify( version, command.getRemoteNode( ));
             return true;
         }
         // the previous enter had a timeout, start a new synchronization
@@ -261,7 +261,7 @@ bool Barrier::_cmdEnter( ICommand& cmd )
             request.timeout = timeout;
         }
     }
-    request.nodes.push_back( command.getNode( ));
+    request.nodes.push_back( command.getRemoteNode( ));
 
     // clean older data which was not removed during older synchronization
     if( request.timeout != LB_TIMEOUT_INDEFINITE )
@@ -281,7 +281,7 @@ bool Barrier::_cmdEnter( ICommand& cmd )
     if( timeout != LB_TIMEOUT_INDEFINITE && version < getVersion( ))
     {
         LBASSERT( incarnation == 0 );
-        _sendNotify( version, command.getNode( ) );
+        _sendNotify( version, command.getRemoteNode( ) );
         return true;
     }
 
@@ -364,7 +364,7 @@ bool Barrier::_cmdEnterReply( ICommand& cmd )
     ObjectICommand command( cmd );
     LB_TS_THREAD( _thread );
     LBLOG( LOG_BARRIER ) << "Got ok, unlock local user(s)" << std::endl;
-    const uint128_t version = command.get< uint128_t >();
+    const uint128_t& version = command.read< uint128_t >();
 
     if( version == getVersion( ))
         ++_impl->incarnation;

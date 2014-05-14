@@ -60,6 +60,8 @@ set(COLLAGE_PUBLIC_HEADERS
 set(COLLAGE_HEADERS
   barrierCommand.h
   bufferCache.h
+  compressorResult.h
+  connections.h
   connectionListener.h
   dataStreamArchive.h
   dataIStreamQueue.h

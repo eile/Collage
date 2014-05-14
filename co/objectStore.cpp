@@ -717,8 +717,8 @@ bool ObjectStore::_cmdFindMasterNodeID( ICommand& command )
 {
     LB_TS_THREAD( _commandThread );
 
-    const UUID& id = command.get< UUID >();
-    const uint32_t requestID = command.get< uint32_t >();
+    const UUID& id = command.read< UUID >();
+    const uint32_t requestID = command.read< uint32_t >();
     LBASSERT( id.isUUID( ));
 
     NodeID masterNodeID;
@@ -750,15 +750,15 @@ bool ObjectStore::_cmdFindMasterNodeID( ICommand& command )
 
     LBLOG( LOG_OBJECTS ) << "Object " << id << " master " << masterNodeID
                          << " req " << requestID << std::endl;
-    command.getNode()->send( CMD_NODE_FIND_MASTER_NODE_ID_REPLY )
+    command.getRemoteNode()->send( CMD_NODE_FIND_MASTER_NODE_ID_REPLY )
             << masterNodeID << requestID;
     return true;
 }
 
 bool ObjectStore::_cmdFindMasterNodeIDReply( ICommand& command )
 {
-    const NodeID& masterNodeID = command.get< NodeID >();
-    const uint32_t requestID = command.get< uint32_t >();
+    const NodeID& masterNodeID = command.read< NodeID >();
+    const uint32_t requestID = command.read< uint32_t >();
     _localNode->serveRequest( requestID, masterNodeID );
     return true;
 }
@@ -768,9 +768,9 @@ bool ObjectStore::_cmdAttach( ICommand& command )
     LB_TS_THREAD( _receiverThread );
     LBLOG( LOG_OBJECTS ) << "Cmd attach object " << command << std::endl;
 
-    const UUID& objectID = command.get< UUID >();
-    const uint32_t instanceID = command.get< uint32_t >();
-    const uint32_t requestID = command.get< uint32_t >();
+    const UUID& objectID = command.read< UUID >();
+    const uint32_t instanceID = command.read< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     Object* object = static_cast< Object* >( _localNode->getRequestData(
                                                  requestID ));
@@ -784,9 +784,9 @@ bool ObjectStore::_cmdDetach( ICommand& command )
     LB_TS_THREAD( _receiverThread );
     LBLOG( LOG_OBJECTS ) << "Cmd detach object " << command << std::endl;
 
-    const UUID& objectID = command.get< UUID >();
-    const uint32_t instanceID = command.get< uint32_t >();
-    const uint32_t requestID = command.get< uint32_t >();
+    const UUID& objectID = command.read< UUID >();
+    const uint32_t instanceID = command.read< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     ObjectsHash::const_iterator i = _objects->find( objectID );
     if( i != _objects->end( ))
@@ -818,7 +818,7 @@ bool ObjectStore::_cmdRegister( ICommand& command )
 
     LBLOG( LOG_OBJECTS ) << "Cmd register object " << command << std::endl;
 
-    Object* object = reinterpret_cast< Object* >( command.get< void* >( ));
+    Object* object = reinterpret_cast< Object* >( command.read< void* >( ));
 
     const int32_t age = Global::getIAttribute(
                             Global::IATTR_NODE_SEND_QUEUE_AGE );
@@ -841,7 +841,7 @@ bool ObjectStore::_cmdDeregister( ICommand& command )
     LB_TS_THREAD( _commandThread );
     LBLOG( LOG_OBJECTS ) << "Cmd deregister object " << command << std::endl;
 
-    const uint32_t requestID = command.get< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     const void* object = _localNode->getRequestData( requestID );
 
@@ -892,7 +892,7 @@ bool ObjectStore::_cmdMap( ICommand& cmd )
     if( !masterCM || !masterCM->addSlave( command ))
     {
         LBWARN << "Can't find master object to map " << id << std::endl;
-        NodePtr node = command.getNode();
+        NodePtr node = command.getRemoteNode();
         node->send( CMD_NODE_MAP_OBJECT_REPLY )
             << node->getNodeID() << id << command.getRequestedVersion()
             << command.getRequestID() << false << command.useCache() << false;
@@ -906,12 +906,12 @@ bool ObjectStore::_cmdMapSuccess( ICommand& command )
 {
     LB_TS_THREAD( _receiverThread );
 
-    const UUID nodeID = command.get< UUID >();
-    const UUID objectID = command.get< UUID >();
-    const uint32_t requestID = command.get< uint32_t >();
-    const uint32_t instanceID = command.get< uint32_t >();
-    const Object::ChangeType changeType = command.get< Object::ChangeType >();
-    const uint32_t masterInstanceID = command.get< uint32_t >();
+    const UUID& nodeID = command.read< UUID >();
+    const UUID& objectID = command.read< UUID >();
+    const uint32_t requestID = command.read< uint32_t >();
+    const uint32_t instanceID = command.read< uint32_t >();
+    const Object::ChangeType changeType = command.read< Object::ChangeType >();
+    const uint32_t masterInstanceID = command.read< uint32_t >();
 
     // Map success commands are potentially multicasted (see above)
     // verify that we are the intended receiver
@@ -940,15 +940,15 @@ bool ObjectStore::_cmdMapReply( ICommand& command )
 
     // Map reply commands are potentially multicasted (see above)
     // verify that we are the intended receiver
-    if( command.get< UUID >() != _localNode->getNodeID( ))
+    if( command.read< UUID >() != _localNode->getNodeID( ))
         return true;
 
-    const UUID& objectID = command.get< UUID >();
-    const uint128_t& version = command.get< uint128_t >();
-    const uint32_t requestID = command.get< uint32_t >();
-    const bool result = command.get< bool >();
-    const bool releaseCache = command.get< bool >();
-    const bool useCache = command.get< bool >();
+    const UUID& objectID = command.read< UUID >();
+    const uint128_t& version = command.read< uint128_t >();
+    const uint32_t requestID = command.read< uint32_t >();
+    const bool result = command.read< bool >();
+    const bool releaseCache = command.read< bool >();
+    const bool useCache = command.read< bool >();
 
     LBLOG( LOG_OBJECTS ) << "Cmd map object reply " << command << " id "
                          << objectID << " req " << requestID << std::endl;
@@ -962,7 +962,7 @@ bool ObjectStore::_cmdMapReply( ICommand& command )
         LBASSERT( object );
         LBASSERT( !object->isMaster( ));
 
-        object->setMasterNode( command.getNode( ));
+        object->setMasterNode( command.getRemoteNode( ));
 
         if( useCache )
         {
@@ -999,12 +999,12 @@ bool ObjectStore::_cmdUnsubscribe( ICommand& command )
     LB_TS_THREAD( _commandThread );
     LBLOG( LOG_OBJECTS ) << "Cmd unsubscribe object  " << command << std::endl;
 
-    const UUID& id = command.get< UUID >();
-    const uint32_t requestID = command.get< uint32_t >();
-    const uint32_t masterInstanceID = command.get< uint32_t >();
-    const uint32_t slaveInstanceID = command.get< uint32_t >();
+    const UUID& id = command.read< UUID >();
+    const uint32_t requestID = command.read< uint32_t >();
+    const uint32_t masterInstanceID = command.read< uint32_t >();
+    const uint32_t slaveInstanceID = command.read< uint32_t >();
 
-    NodePtr node = command.getNode();
+    NodePtr node = command.getRemoteNode();
 
     {
         lunchbox::ScopedFastWrite mutex( _objects );
@@ -1034,7 +1034,7 @@ bool ObjectStore::_cmdUnmap( ICommand& command )
     LB_TS_THREAD( _receiverThread );
     LBLOG( LOG_OBJECTS ) << "Cmd unmap object " << command << std::endl;
 
-    const UUID& objectID = command.get< UUID >();
+    const UUID& objectID = command.read< UUID >();
 
     if( _instanceCache )
         _instanceCache->erase( objectID );
@@ -1106,7 +1106,7 @@ bool ObjectStore::_cmdSync( ICommand& cmd )
     }
     if( !cm || !cm->sendSync( command ))
     {
-        NodePtr node = command.getNode();
+        NodePtr node = command.getRemoteNode();
         node->send( CMD_NODE_SYNC_OBJECT_REPLY )
             << node->getNodeID() << id << command.getRequestID()
             << false << command.useCache() << false;
@@ -1120,14 +1120,14 @@ bool ObjectStore::_cmdSyncReply( ICommand& command )
 
     // Sync reply commands are potentially multicasted (see above)
     // verify that we are the intended receiver
-    if( command.get< UUID >() != _localNode->getNodeID( ))
+    if( command.read< UUID >() != _localNode->getNodeID( ))
         return true;
 
-    const NodeID& id = command.get< NodeID >();
-    const uint32_t requestID = command.get< uint32_t >();
-    const bool result = command.get< bool >();
-    const bool releaseCache = command.get< bool >();
-    const bool useCache = command.get< bool >();
+    const NodeID& id = command.read< NodeID >();
+    const uint32_t requestID = command.read< uint32_t >();
+    const bool result = command.read< bool >();
+    const bool releaseCache = command.read< bool >();
+    const bool useCache = command.read< bool >();
     void* const data = _localNode->getRequestData( requestID );
     ObjectDataIStream* const is = LBSAFECAST( ObjectDataIStream*, data );
 
@@ -1171,8 +1171,8 @@ bool ObjectStore::_cmdInstance( ICommand& inCommand )
     LBASSERT( _localNode );
 
     ObjectDataICommand command( inCommand );
-    const NodeID& nodeID = command.get< NodeID >();
-    const uint32_t masterInstanceID = command.get< uint32_t >();
+    const NodeID& nodeID = command.read< NodeID >();
+    const uint32_t masterInstanceID = command.read< uint32_t >();
     const uint32_t cmd = command.getCommand();
 
     LBLOG( LOG_OBJECTS ) << "Instance " << command << " for " << nodeID
@@ -1259,7 +1259,7 @@ bool ObjectStore::_cmdDisableSendOnRegister( ICommand& command )
         }
     }
 
-    const uint32_t requestID = command.get< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
     _localNode->serveRequest( requestID );
     return true;
 }
@@ -1269,8 +1269,8 @@ bool ObjectStore::_cmdRemoveNode( ICommand& command )
     LB_TS_THREAD( _commandThread );
     LBLOG( LOG_OBJECTS ) << "Cmd object  " << command << std::endl;
 
-    Node* node = command.get< Node* >();
-    const uint32_t requestID = command.get< uint32_t >();
+    Node* node = command.read< Node* >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     lunchbox::ScopedFastWrite mutex( _objects );
     for( ObjectsHashCIter i = _objects->begin(); i != _objects->end(); ++i )
@@ -1292,9 +1292,9 @@ bool ObjectStore::_cmdPush( ICommand& command )
 {
     LB_TS_THREAD( _commandThread );
 
-    const UUID& objectID = command.get< UUID >();
-    const uint128_t& groupID = command.get< uint128_t >();
-    const uint128_t& typeID = command.get< uint128_t >();
+    const UUID& objectID = command.read< UUID >();
+    const uint128_t& groupID = command.read< uint128_t >();
+    const uint128_t& typeID = command.read< uint128_t >();
 
     ObjectDataIStream* is = _pushData.pull( objectID );
 

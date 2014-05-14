@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+/* Copyright (c) 2012-2014, Daniel Nachbaur <danielnachbaur@gmail.com>
  *               2012-2014, Stefan.Eilemann@epfl.ch
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
@@ -22,7 +22,6 @@
 #define CO_OBJECTDATAOCOMMAND_H
 
 #include <co/objectOCommand.h>   // base class
-#include <co/objectICommand.h>    // CMD enums
 
 
 /** @cond IGNORE */
@@ -51,18 +50,16 @@ public:
      * @param id the ID of the object to dispatch this command to.
      * @param instanceID the instance of the object to dispatch the command to.
      * @param version the version of the object data.
-     * @param data a pointer to the object data.
+     * @param data the serialized, maybe compressed object data
      * @param sequence the index in a sequence of a set commands.
      * @param isLast true if this is the last command for one object
-     * @param stream the stream containing the (possible) compressed object data
      */
     CO_API ObjectDataOCommand( const Connections& receivers,
                                const uint32_t cmd, const uint32_t type,
                                const UUID& id, const uint32_t instanceID,
                                const uint128_t& version,
                                const CompressorResult& data,
-                               const uint32_t sequence, const bool isLast,
-                               DataOStream* stream );
+                               const uint32_t sequence, const bool isLast );
 
     /** @internal */
     CO_API ObjectDataOCommand( const ObjectDataOCommand& rhs );

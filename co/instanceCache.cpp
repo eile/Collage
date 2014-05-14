@@ -94,7 +94,7 @@ bool InstanceCache::add( const ObjectVersion& rev, const uint32_t instanceID,
     ++nWrite;
 #endif
 
-    const NodeID nodeID = command.getNode()->getNodeID();
+    const NodeID nodeID = command.getRemoteNode()->getNodeID();
 
     lunchbox::ScopedMutex<> mutex( _items );
     ItemHash::const_iterator i = _items->find( rev.identifier );

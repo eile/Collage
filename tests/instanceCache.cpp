@@ -85,7 +85,7 @@ int main( int argc, char **argv )
     const co::CompressorResult data( buffer, COMMAND_SIZE );
     co::ObjectDataOCommand out( co::Connections(), co::CMD_NODE_OBJECT_INSTANCE,
                                 co::COMMANDTYPE_NODE, co::UUID(), 0,
-                                co::uint128_t(1), data, 0, true, 0 );
+                                co::uint128_t(1), data, 0, true );
     co::LocalNodePtr node = new co::LocalNode;
     co::ObjectDataICommand in = out._getCommand( node );
     TESTINFO( in.isValid(), in );

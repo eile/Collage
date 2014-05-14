@@ -122,12 +122,12 @@ private:
 template< class C >
 bool commandHandler( C command, Buffer& buffer, const uint64_t seed )
 {
-    co::NodePtr node = command.getNode();
+    co::NodePtr node = command.getRemoteNode();
     if( node->getType() != 0xC0FFEEu )
         return false;
 
     PerfNodeProxyPtr peer = static_cast< PerfNodeProxy* >( node.get( ));
-    const uint32_t nPackets = command.template get< uint32_t >();
+    const uint32_t nPackets = command.template read< uint32_t >();
 
     if( peer->nPackets != 0 && peer->nPackets - 1 != nPackets )
     {

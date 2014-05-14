@@ -27,32 +27,29 @@ namespace co
 namespace detail { class ConnectionOStream; }
 namespace DataStreamTest { class Sender; }
 
-/** @internal Augments DataOStream with the capability to emit to Connections. */
+/** @internal Augments DataOStream with the capability to emit to Connections.*/
 class ConnectionOStream : public DataOStream
 {
 public:
     /** @return the current active connections */
     CO_API const Connections& getConnections() const;
 
-    /** Disable the stream and emit the remaining data. */
-    void disable() override;
+    /** Close the stream and emit/send the remaining data. */
+    void close() override;
 
 protected:
-    CO_API ConnectionOStream();
+    CO_API explicit ConnectionOStream( const bool save );
     ConnectionOStream( ConnectionOStream& rhs );
     virtual CO_API ~ConnectionOStream();
 
     /**
      * Set up the connection list for a group of nodes, using multicast
-     * where possible.
+     * if specified and possible.
      */
-    void setup( const Nodes& receivers );
+    void setup( const Nodes& receivers, const bool useMulticast );
 
     void setup( const Connections& connections );
     friend class DataStreamTest::Sender;
-
-    /** Set up the connection (list) for one node. */
-    void setup( NodePtr node, const bool useMulticast );
 
     /** Clear setup connections */
     void clear();
@@ -63,16 +60,21 @@ protected:
     //@{
     /** Send a data buffer (command) to the receivers. */
     virtual void sendData( const CompressorResult& data, const bool last ) = 0;
+
+    /** Resend saved data buffer to the given nodes. */
+    void resendData( const Nodes& receivers, const bool useMulticast );
     //@}
 
 private:
+    ConnectionOStream();
     detail::ConnectionOStream* const _impl;
 
-    void emit( void* src, const uint64_t size, const State state,
-               const bool last ) final;
+    void emitData( const CompressorResult& data, const bool last ) final;
+    const CompressorResult& compress( void* data, const uint64_t size,
+                                      const State newState ) final;
+
 };
 
-std::ostream& operator << ( std::ostream&, const ConnectionOStream& );
 }
 
 #endif //CO_CONNECTIONOSTREAM_H

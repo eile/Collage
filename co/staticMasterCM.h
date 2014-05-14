@@ -24,7 +24,6 @@
 
 #include "objectCM.h"    // base class
 #include <co/version.h>  // enum
-#include "objectInstanceDataOStream.h"
 
 #include <deque>
 
@@ -36,7 +35,7 @@ namespace co
 class StaticMasterCM : public ObjectCM
 {
 public:
-    StaticMasterCM( Object* object ) : ObjectCM( object ) {}
+    explicit StaticMasterCM( Object* object ) : ObjectCM( object ) {}
     virtual ~StaticMasterCM() {}
 
     void init() override {}

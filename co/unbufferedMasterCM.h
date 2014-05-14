@@ -34,7 +34,7 @@ namespace co
     class UnbufferedMasterCM : public VersionedMasterCM
     {
     public:
-        UnbufferedMasterCM( Object* object );
+        explicit UnbufferedMasterCM( Object* object );
         virtual ~UnbufferedMasterCM();
 
         /** @name Versioning */
@@ -43,10 +43,6 @@ namespace co
         void setAutoObsolete( const uint32_t ) override {}
         uint32_t getAutoObsolete() const override { return 0; }
         //@}
-
-    private:
-        /* The command handlers. */
-        bool _cmdCommit( ICommand& pkg );
     };
 }
 

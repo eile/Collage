@@ -110,7 +110,7 @@ bool VersionedMasterCM::addSlave( const MasterCMCommand& command )
         return false;
 
     SlaveData data;
-    data.node = command.getNode();
+    data.node = command.getRemoteNode();
     data.instanceID = command.getInstanceID();
     data.maxVersion = command.getMaxVersion();
     if( data.maxVersion == 0 )
@@ -196,7 +196,7 @@ bool VersionedMasterCM::_cmdSlaveDelta( ICommand& cmd )
 
     LB_TS_THREAD( _rcvThread );
 
-    if( _slaveCommits.addDataCommand( command.get< UUID >(), command ))
+    if( _slaveCommits.addDataCommand( command.read< UUID >(), command ))
         _object->notifyNewVersion();
     return true;
 }
@@ -204,14 +204,14 @@ bool VersionedMasterCM::_cmdSlaveDelta( ICommand& cmd )
 bool VersionedMasterCM::_cmdMaxVersion( ICommand& cmd )
 {
     ObjectICommand command( cmd );
-    const uint64_t version = command.get< uint64_t >();
-    const uint32_t slaveID = command.get< uint32_t >();
+    const uint64_t version = command.read< uint64_t >();
+    const uint32_t slaveID = command.read< uint32_t >();
 
     Mutex mutex( _slaves );
 
     // Update slave's max version
     SlaveData data;
-    data.node = command.getNode();
+    data.node = command.getRemoteNode();
     data.instanceID = slaveID;
     SlaveDatasIter i = lunchbox::find( _slaveData, data );
     if( i == _slaveData.end( ))

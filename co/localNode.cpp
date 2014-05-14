@@ -1549,7 +1549,7 @@ bool LocalNode::_notifyCommandThreadIdle()
 
 bool LocalNode::_cmdAckRequest( ICommand& command )
 {
-    const uint32_t requestID = command.get< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
     LBASSERT( requestID != LB_UNDEFINED_UINT32 );
 
     serveRequest( requestID );
@@ -1580,7 +1580,7 @@ bool LocalNode::_cmdStopCmd( ICommand& )
 
 bool LocalNode::_cmdSetAffinity( ICommand& command )
 {
-    const int32_t affinity = command.get< int32_t >();
+    const int32_t affinity = command.read< int32_t >();
 
     lunchbox::Thread::setAffinity( affinity );
     return true;
@@ -1591,10 +1591,10 @@ bool LocalNode::_cmdConnect( ICommand& command )
     LBASSERTINFO( !command.getRemoteNode(), command );
     LBASSERT( _impl->inReceiverThread( ));
 
-    const NodeID& nodeID = command.get< NodeID >();
-    const uint32_t requestID = command.get< uint32_t >();
-    const uint32_t nodeType = command.get< uint32_t >();
-    std::string data = command.get< std::string >();
+    const NodeID& nodeID = command.read< NodeID >();
+    const uint32_t requestID = command.read< uint32_t >();
+    const uint32_t nodeType = command.read< uint32_t >();
+    std::string data = command.read< std::string >();
 
     LBVERB << "handle connect " << command << " req " << requestID << " type "
            << nodeType << " data " << data << std::endl;
@@ -1684,8 +1684,8 @@ bool LocalNode::_cmdConnectReply( ICommand& command )
     LBASSERT( _impl->connectionNodes.find( connection ) ==
               _impl->connectionNodes.end( ));
 
-    const NodeID& nodeID = command.get< NodeID >();
-    const uint32_t requestID = command.get< uint32_t >();
+    const NodeID& nodeID = command.read< NodeID >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     // connection refused
     if( nodeID == 0 )
@@ -1698,8 +1698,8 @@ bool LocalNode::_cmdConnectReply( ICommand& command )
         return true;
     }
 
-    const uint32_t nodeType = command.get< uint32_t >();
-    std::string data = command.get< std::string >();
+    const uint32_t nodeType = command.read< uint32_t >();
+    std::string data = command.read< std::string >();
 
     LBVERB << "handle connect reply " << command << " req " << requestID
            << " type " << nodeType << " data " << data << std::endl;
@@ -1782,9 +1782,9 @@ bool LocalNode::_cmdID( ICommand& command )
 {
     LBASSERT( _impl->inReceiverThread( ));
 
-    const NodeID& nodeID = command.get< NodeID >();
-    uint32_t nodeType = command.get< uint32_t >();
-    std::string data = command.get< std::string >();
+    const NodeID& nodeID = command.read< NodeID >();
+    uint32_t nodeType = command.read< uint32_t >();
+    std::string data = command.read< std::string >();
 
     if( command.getRemoteNode( ))
     {
@@ -1842,7 +1842,7 @@ bool LocalNode::_cmdDisconnect( ICommand& command )
 {
     LBASSERT( _impl->inReceiverThread( ));
 
-    const uint32_t requestID = command.get< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     NodePtr node = static_cast<Node*>( getRequestData( requestID ));
     LBASSERT( node );
@@ -1855,8 +1855,8 @@ bool LocalNode::_cmdDisconnect( ICommand& command )
 
 bool LocalNode::_cmdGetNodeData( ICommand& command )
 {
-    const NodeID& nodeID = command.get< NodeID >();
-    const uint32_t requestID = command.get< uint32_t >();
+    const NodeID& nodeID = command.read< NodeID >();
+    const uint32_t requestID = command.read< uint32_t >();
 
     LBVERB << "cmd get node data: " << command << " req " << requestID
            << " nodeID " << nodeID << std::endl;
@@ -1883,10 +1883,10 @@ bool LocalNode::_cmdGetNodeDataReply( ICommand& command )
 {
     LBASSERT( _impl->inReceiverThread( ));
 
-    const NodeID& nodeID = command.get< NodeID >();
-    const uint32_t requestID = command.get< uint32_t >();
-    const uint32_t nodeType = command.get< uint32_t >();
-    std::string nodeData = command.get< std::string >();
+    const NodeID& nodeID = command.read< NodeID >();
+    const uint32_t requestID = command.read< uint32_t >();
+    const uint32_t nodeType = command.read< uint32_t >();
+    std::string nodeData = command.read< std::string >();
 
     LBVERB << "cmd get node data reply: " << command << " req " << requestID
            << " type " << nodeType << " data " << nodeData << std::endl;
@@ -1947,7 +1947,7 @@ bool LocalNode::_cmdAcquireSendToken( ICommand& command )
 
     _impl->sendToken = false;
 
-    const uint32_t requestID = command.get< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
     command.getRemoteNode()->send( CMD_NODE_ACQUIRE_SEND_TOKEN_REPLY )
             << requestID;
     return true;
@@ -1955,7 +1955,7 @@ bool LocalNode::_cmdAcquireSendToken( ICommand& command )
 
 bool LocalNode::_cmdAcquireSendTokenReply( ICommand& command )
 {
-    const uint32_t requestID = command.get< uint32_t >();
+    const uint32_t requestID = command.read< uint32_t >();
     serveRequest( requestID );
     return true;
 }
@@ -1975,7 +1975,7 @@ bool LocalNode::_cmdReleaseSendToken( ICommand& )
 
     ICommand& request = _impl->sendTokenQueue.front();
 
-    const uint32_t requestID = request.get< uint32_t >();
+    const uint32_t requestID = request.read< uint32_t >();
     request.getRemoteNode()->send( CMD_NODE_ACQUIRE_SEND_TOKEN_REPLY )
             << requestID;
     _impl->sendTokenQueue.pop_front();
@@ -1985,8 +1985,8 @@ bool LocalNode::_cmdReleaseSendToken( ICommand& )
 bool LocalNode::_cmdAddListener( ICommand& command )
 {
     Connection* rawConnection =
-        reinterpret_cast< Connection* >( command.get< uint64_t >( ));
-    std::string data = command.get< std::string >();
+        reinterpret_cast< Connection* >( command.read< uint64_t >( ));
+    std::string data = command.read< std::string >();
 
     ConnectionDescriptionPtr description = new ConnectionDescription( data );
     command.getRemoteNode()->_addConnectionDescription( description );
@@ -2011,9 +2011,9 @@ bool LocalNode::_cmdAddListener( ICommand& command )
 
 bool LocalNode::_cmdRemoveListener( ICommand& command )
 {
-    const uint32_t requestID = command.get< uint32_t >();
-    Connection* rawConnection = command.get< Connection* >();
-    std::string data = command.get< std::string >();
+    const uint32_t requestID = command.read< uint32_t >();
+    Connection* rawConnection = command.read< Connection* >();
+    std::string data = command.read< std::string >();
 
     ConnectionDescriptionPtr description = new ConnectionDescription( data );
     LBCHECK(
@@ -2048,7 +2048,7 @@ bool LocalNode::_cmdPing( ICommand& command )
 
 bool LocalNode::_cmdCommand( ICommand& command )
 {
-    const uint128_t& commandID = command.get< uint128_t >();
+    const uint128_t& commandID = command.read< uint128_t >();
     CommandHandler func;
     {
         lunchbox::ScopedFastRead mutex( _impl->commandHandlers );
@@ -2075,7 +2075,7 @@ bool LocalNode::_cmdCommand( ICommand& command )
 
 bool LocalNode::_cmdCommandAsync( ICommand& command )
 {
-    const uint128_t& commandID = command.get< uint128_t >();
+    const uint128_t& commandID = command.read< uint128_t >();
     CommandHandler func;
     {
         lunchbox::ScopedFastRead mutex( _impl->commandHandlers );
@@ -2093,7 +2093,7 @@ bool LocalNode::_cmdAddConnection( ICommand& command )
 {
     LBASSERT( _impl->inReceiverThread( ));
 
-    ConnectionPtr connection = command.get< ConnectionPtr >();
+    ConnectionPtr connection = command.read< ConnectionPtr >();
     _addConnection( connection );
     connection->unref(); // ref'd by _addConnection
     return true;

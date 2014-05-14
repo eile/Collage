@@ -29,7 +29,7 @@
 namespace co
 {
 ObjectDeltaDataOStream::ObjectDeltaDataOStream( const ObjectCM* cm )
-        : ObjectDataOStream( cm )
+    : ObjectDataOStream( cm, false /*save*/ )
 {}
 
 ObjectDeltaDataOStream::~ObjectDeltaDataOStream()

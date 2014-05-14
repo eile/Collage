@@ -25,8 +25,6 @@
 #include "dataIStreamQueue.h" // member
 #include <co/types.h>
 
-#include <lunchbox/mtQueue.h> // member
-#include <lunchbox/pool.h>    // member
 #include <lunchbox/stdExt.h>  // member
 #include <lunchbox/thread.h>  // thread-safety check
 
@@ -42,7 +40,7 @@ protected:
     typedef lunchbox::ScopedWrite Mutex;
 
 public:
-    VersionedMasterCM( Object* object );
+    explicit VersionedMasterCM( Object* object );
     virtual ~VersionedMasterCM();
 
     void init() override {}
@@ -107,8 +105,8 @@ private:
     bool _cmdMaxVersion( ICommand& command );
     bool _cmdDiscard( ICommand& ) { return true; }
 
-    LB_TS_VAR( _cmdThread );
-    LB_TS_VAR( _rcvThread );
+    LB_TS_VAR( _cmdThread )
+    LB_TS_VAR( _rcvThread )
 };
 }
 

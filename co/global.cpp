@@ -166,7 +166,7 @@ void Global::setObjectBufferSize( const uint32_t size )
 
 uint32_t Global::getObjectBufferSize()
 {
-    return  _objectBufferSize;
+    return _objectBufferSize;
 }
 
 lunchbox::PluginRegistry& Global::getPluginRegistry()

@@ -63,15 +63,15 @@ public:
     {
         co::ObjectICommand command( comd );
 
-        const uint32_t itemsRequested = command.get< uint32_t >();
-        const uint32_t slaveInstanceID = command.get< uint32_t >();
-        const int32_t requestID = command.get< int32_t >();
+        const uint32_t itemsRequested = command.read< uint32_t >();
+        const uint32_t slaveInstanceID = command.read< uint32_t >();
+        const int32_t requestID = command.read< int32_t >();
 
         typedef std::vector< ItemBufferPtr > Items;
         Items items;
         queue.tryPop( itemsRequested, items );
 
-        Connections connections( 1, command.getNode()->getConnection( ));
+        Connections connections( 1, command.getRemoteNode()->getConnection( ));
         for( Items::const_iterator i = items.begin(); i != items.end(); ++i )
         {
             co::ObjectOCommand cmd( connections, CMD_QUEUE_ITEM,

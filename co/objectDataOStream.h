@@ -22,7 +22,6 @@
 #define CO_OBJECTDATAOSTREAM_H
 
 #include <co/connectionOStream.h>   // base class
-#include <co/version.h>       // enum
 
 namespace co
 {
@@ -30,7 +29,7 @@ namespace co
 class ObjectDataOStream : public ConnectionOStream
 {
 public:
-    ObjectDataOStream( const ObjectCM* cm );
+    ObjectDataOStream( const ObjectCM* cm, const bool save );
     virtual ~ObjectDataOStream(){}
 
     void reset() override;

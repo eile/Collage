@@ -34,18 +34,14 @@ namespace co
     class DeltaMasterCM : public FullMasterCM
     {
     public:
-        DeltaMasterCM( Object* object );
+        explicit DeltaMasterCM( Object* object );
         virtual ~DeltaMasterCM();
 
     protected:
         void _commit() override;
 
     private:
-        /* The command handlers. */
-        bool _cmdCommit( ICommand& pkg );
-
-        typedef ObjectDeltaDataOStream DeltaData;
-        DeltaData _deltaData;
+        ObjectDeltaDataOStream _deltaData;
     };
 }
 

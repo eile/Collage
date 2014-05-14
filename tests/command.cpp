@@ -62,24 +62,24 @@ private:
     bool _cmdSync( co::ICommand& command )
     {
         TEST( _gotAsync );
-        ackRequest( command.getNode(), command.get< uint32_t >( ));
+        ackRequest( command.getRemoteNode(), command.read< uint32_t >( ));
         return true;
     }
 
     bool _cmdData( co::ICommand& command )
     {
         TEST( _gotAsync );
-        command.getNode()->send( CMD_DATA_REPLY )
-            << command.get< uint32_t >() << ++_counter;
-        TEST( command.get< std::string >() == payload );
+        command.getRemoteNode()->send( CMD_DATA_REPLY )
+            << command.read< uint32_t >() << ++_counter;
+        TEST( command.read< std::string >() == payload );
         return true;
     }
 
     bool _cmdDataReply( co::ICommand& command )
     {
         TEST( !_gotAsync );
-        const uint32_t request = command.get< uint32_t >();
-        const uint32_t result = command.get< uint32_t >();
+        const uint32_t request = command.read< uint32_t >();
+        const uint32_t result = command.read< uint32_t >();
         TEST( result == ++_counter );
         serveRequest( request, result );
         return true;

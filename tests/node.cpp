@@ -64,7 +64,7 @@ protected:
             TEST( cmd.getCommand() == co::CMD_NODE_CUSTOM );
             TEST( _messagesLeft > 0 );
 
-            const std::string& data = cmd.get< std::string >();
+            const std::string& data = cmd.read< std::string >();
             TESTINFO( message == data, data );
 
             --_messagesLeft;

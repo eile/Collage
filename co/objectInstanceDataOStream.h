@@ -29,14 +29,14 @@ namespace co
     class ObjectInstanceDataOStream : public ObjectDataOStream
     {
     public:
-        ObjectInstanceDataOStream( const ObjectCM* cm );
+        explicit ObjectInstanceDataOStream( const ObjectCM* cm );
         virtual ~ObjectInstanceDataOStream();
 
         void reset() override;
 
         /** Set up commit of the given version to the receivers. */
         void enableCommit( const uint128_t& version,
-                                   const Nodes& receivers ) override;
+                           const Nodes& receivers ) override;
 
         /** Set up push of the given version to the receivers. */
         void enablePush( const uint128_t& version, const Nodes& receivers );

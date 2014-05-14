@@ -38,7 +38,7 @@ namespace co
     class FullMasterCM : public VersionedMasterCM
     {
     public:
-        FullMasterCM( Object* object );
+        explicit FullMasterCM( Object* object );
         virtual ~FullMasterCM();
 
         void init() override;
@@ -93,11 +93,6 @@ namespace co
         /** The list of full instance datas, head version last. */
         InstanceDataDeque _instanceDatas;
         InstanceDatas _instanceDataCache;
-
-        /* The command handlers. */
-        bool _cmdCommit( ICommand& command );
-        bool _cmdObsolete( ICommand& command );
-        bool _cmdPush( ICommand& command );
     };
 }
 

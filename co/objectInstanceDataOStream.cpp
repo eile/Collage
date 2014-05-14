@@ -21,6 +21,7 @@
 
 #include "objectInstanceDataOStream.h"
 
+#include "connections.h"
 #include "log.h"
 #include "nodeCommand.h"
 #include "object.h"
@@ -32,9 +33,9 @@
 namespace co
 {
 ObjectInstanceDataOStream::ObjectInstanceDataOStream( const ObjectCM* cm )
-        : ObjectDataOStream( cm )
-        , _instanceID( CO_INSTANCE_ALL )
-        , _command( 0 )
+    : ObjectDataOStream( cm, true /*save*/ )
+    , _instanceID( CO_INSTANCE_ALL )
+    , _command( 0 )
 {}
 
 ObjectInstanceDataOStream::~ObjectInstanceDataOStream()
@@ -69,7 +70,7 @@ void ObjectInstanceDataOStream::enablePush( const uint128_t& version,
 void ObjectInstanceDataOStream::enableSync( const uint128_t& version,
                                             const MasterCMCommand& command )
 {
-    NodePtr node = command.getNode();
+    NodePtr node = command.getRemoteNode();
 
     _command = CMD_NODE_OBJECT_INSTANCE_SYNC;
     _nodeID = node->getNodeID();
@@ -86,24 +87,23 @@ void ObjectInstanceDataOStream::push( const Nodes& receivers,
     _nodeID = 0;
     _instanceID = CO_INSTANCE_NONE;
 
-    setup( receivers );
-    reemit();
-    OCommand( getConnections(), CMD_NODE_OBJECT_PUSH, COMMANDTYPE_NODE )
+    resendData( receivers, true /* multicast */ );
+
+    const Connections& connections = gatherConnections( receivers,
+                                                        true /* multicast */ );
+    OCommand( connections, CMD_NODE_OBJECT_PUSH, COMMANDTYPE_NODE )
         << objectID << groupID << typeID;
-    clear();
 }
 
 void ObjectInstanceDataOStream::sync( const MasterCMCommand& command )
 {
-    NodePtr node = command.getNode();
+    NodePtr node = command.getRemoteNode();
 
     _command = CMD_NODE_OBJECT_INSTANCE_SYNC;
     _nodeID = node->getNodeID();
     _instanceID = command.getRequestID(); // ugh
 
-    setup( Nodes( 1, node ));
-    reemit();
-    clear();
+    resendData( Nodes( 1, node ), true /* multicast */ );
 }
 
 void ObjectInstanceDataOStream::sendInstanceData( const Nodes& receivers )
@@ -112,9 +112,7 @@ void ObjectInstanceDataOStream::sendInstanceData( const Nodes& receivers )
     _nodeID = 0;
     _instanceID = CO_INSTANCE_NONE;
 
-    setup( receivers );
-    reemit();
-    clear();
+    resendData( receivers, true /* multicast */ );
 }
 
 void ObjectInstanceDataOStream::sendMapData( NodePtr node,
@@ -124,9 +122,7 @@ void ObjectInstanceDataOStream::sendMapData( NodePtr node,
     _nodeID = node->getNodeID();
     _instanceID = instanceID;
 
-    setup( node, true /* useMulticast */ );
-    reemit();
-    clear();
+    resendData( Nodes( 1, node ), true /* multicast */ );
 }
 
 void ObjectInstanceDataOStream::enableMap( const uint128_t& version,
@@ -138,8 +134,8 @@ void ObjectInstanceDataOStream::enableMap( const uint128_t& version,
     _instanceID = instanceID;
     _version = version;
 
-    setup( node, true /* useMulticast */ );
-    enable();
+    setup( Nodes( 1, node ), true /* multicast */ );
+    open();
 }
 
 void ObjectInstanceDataOStream::sendData( const CompressorResult& data,

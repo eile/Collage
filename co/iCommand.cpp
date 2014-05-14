@@ -221,8 +221,8 @@ std::ostream& operator << ( std::ostream& os, const ICommand& command )
         os << lunchbox::disableFlush << "command< type "
            << uint32_t( command.getType( )) << " cmd " << command.getCommand()
            << " size " << command.getSize() << '/' << buffer->getSize() << '/'
-           << buffer->getMaxSize() << " from " << command.getNode() << " to "
-           << command.getLocalNode() << " >" << lunchbox::enableFlush;
+           << buffer->getMaxSize() << " from " << command.getRemoteNode()
+           << " to " << command.getLocalNode() << " >" << lunchbox::enableFlush;
     else
         os << "command< empty >";
 

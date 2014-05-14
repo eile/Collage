@@ -42,25 +42,23 @@ public:
 }
 
 QueueItem::QueueItem( QueueMaster& master )
-    : DataOStream()
+    : DataOStream( true /*save*/ )
     , _impl( new detail::QueueItem( master ))
 {
-    enableSave();
-    enable();
+    open();
 }
 
 QueueItem::QueueItem( const QueueItem& rhs )
-    : DataOStream()
+    : DataOStream( true /*save*/ )
     , _impl( new detail::QueueItem( *rhs._impl ))
 {
-    enableSave();
-    enable();
+    open();
 }
 
 QueueItem::~QueueItem()
 {
     _impl->queueMaster._addItem( *this );
-    disable();
+    close();
     delete _impl;
 }
 

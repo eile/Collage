@@ -25,12 +25,13 @@
 #include "versionedMasterCM.h"
 #include "object.h"
 #include "objectDataIStream.h"
+#include "objectDataICommand.h"
 #include "objectDataOCommand.h"
 
 namespace co
 {
 ObjectSlaveDataOStream::ObjectSlaveDataOStream( const ObjectCM* cm )
-    : ObjectDataOStream( cm )
+    : ObjectDataOStream( cm, false /*save*/ )
     ,  _commit( lunchbox::make_UUID( ))
 {
 }
@@ -41,8 +42,8 @@ ObjectSlaveDataOStream::~ObjectSlaveDataOStream()
 void ObjectSlaveDataOStream::enableSlaveCommit( NodePtr node )
 {
     _version = lunchbox::make_UUID();
-    setup( node, false /* useMulticast */ );
-    enable();
+    setup( Nodes( 1, node ), false /* multicast */ );
+    open();
 }
 
 void ObjectSlaveDataOStream::sendData( const CompressorResult& data,

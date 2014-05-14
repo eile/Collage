@@ -72,7 +72,7 @@ void ObjectCM::push( const uint128_t& groupID, const uint128_t& typeID,
     OCommand( os.getConnections(), CMD_NODE_OBJECT_PUSH, COMMANDTYPE_NODE )
         << _object->getID() << groupID << typeID;
 
-    os.disable(); // handled by remote recv thread
+    os.close(); // handled by remote recv thread
 }
 
 bool ObjectCM::sendSync( const MasterCMCommand& command )
@@ -95,9 +95,9 @@ bool ObjectCM::sendSync( const MasterCMCommand& command )
         ObjectInstanceDataOStream os( this );
         os.enableSync( getVersion(), command );
         _object->getInstanceData( os );
-        os.disable();
+        os.close();
     }
-    NodePtr node = command.getNode();
+    NodePtr node = command.getRemoteNode();
     node->send( CMD_NODE_SYNC_OBJECT_REPLY, useCache /*preferMulticast*/ )
         << node->getNodeID() << command.getObjectID() << command.getRequestID()
         << true << command.useCache() << useCache;
@@ -171,9 +171,10 @@ bool ObjectCM::_initSlave( const MasterCMCommand& command,
     // send instance data
     ObjectInstanceDataOStream os( this );
 
-    os.enableMap( replyVersion, command.getNode(), command.getInstanceID( ));
+    os.enableMap( replyVersion, command.getRemoteNode(),
+                  command.getInstanceID( ));
     _object->getInstanceData( os );
-    os.disable();
+    os.close();
     if( !os.hasData( ))
         // no data, send empty command to set version
         _sendEmptyVersion( command, replyVersion, true /* mc */ );
@@ -185,8 +186,8 @@ bool ObjectCM::_initSlave( const MasterCMCommand& command,
 void ObjectCM::_sendMapSuccess( const MasterCMCommand& command,
                                 const bool multicast )
 {
-    command.getNode()->send( CMD_NODE_MAP_OBJECT_SUCCESS, multicast )
-            << command.getNode()->getNodeID() << command.getObjectID()
+    command.getRemoteNode()->send( CMD_NODE_MAP_OBJECT_SUCCESS, multicast )
+            << command.getRemoteNode()->getNodeID() << command.getObjectID()
             << command.getRequestID() << command.getInstanceID()
             << _object->getChangeType() << _object->getInstanceID();
 }
@@ -195,8 +196,8 @@ void ObjectCM::_sendMapReply( const MasterCMCommand& command,
                               const uint128_t& version, const bool result,
                               const bool useCache, const bool multicast )
 {
-    command.getNode()->send( CMD_NODE_MAP_OBJECT_REPLY, multicast )
-            << command.getNode()->getNodeID() << command.getObjectID()
+    command.getRemoteNode()->send( CMD_NODE_MAP_OBJECT_REPLY, multicast )
+            << command.getRemoteNode()->getNodeID() << command.getObjectID()
             << version << command.getRequestID() << result
             << command.useCache() << useCache;
 }
@@ -205,13 +206,13 @@ void ObjectCM::_sendEmptyVersion( const MasterCMCommand& command,
                                   const uint128_t& version,
                                   const bool multicast )
 {
-    NodePtr node = command.getNode();
+    NodePtr node = command.getRemoteNode();
     ConnectionPtr connection = node->getConnection( multicast );
     const CompressorResult data( 0, 0 );
 
     ObjectDataOCommand( Connections( 1, connection ), CMD_OBJECT_INSTANCE,
                         COMMANDTYPE_OBJECT, _object->getID(),
-                        command.getInstanceID(), version, data, 0, true, 0 )
+                        command.getInstanceID(), version, data, 0, true )
             << NodeID() << _object->getInstanceID();
 }
 

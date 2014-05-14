@@ -109,7 +109,7 @@ ObjectICommand QueueSlave::pop( const uint32_t timeout )
             default:
                 LBUNIMPLEMENTED;
             case CMD_QUEUE_EMPTY:
-                if( cmd.get< int32_t >() == request )
+                if( cmd.read< int32_t >() == request )
                     return ObjectICommand( 0, 0, 0, false );
                 // else left-over or not our empty command, discard and retry
                 break;

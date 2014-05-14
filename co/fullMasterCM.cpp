@@ -81,7 +81,7 @@ void FullMasterCM::init()
 
     data->os.enableCommit( VERSION_FIRST, *_slaves );
     _object->getInstanceData( data->os );
-    data->os.disable();
+    data->os.close();
 
     _instanceDatas.push_back( data );
     ++_version;
@@ -302,7 +302,6 @@ FullMasterCM::InstanceData* FullMasterCM::_newInstanceData()
 
     instanceData->commitCount = _commitCount;
     instanceData->os.reset();
-    instanceData->os.enableSave();
     return instanceData;
 }
 
@@ -356,7 +355,7 @@ void FullMasterCM::_commit()
     InstanceData* instanceData = _newInstanceData();
     instanceData->os.enableCommit( _version + 1, *_slaves );
     _object->getInstanceData( instanceData->os );
-    instanceData->os.disable();
+    instanceData->os.close();
 
     if( instanceData->os.hasData( ))
     {
@@ -396,7 +395,7 @@ bool FullMasterCM::sendSync( const MasterCMCommand& command )
         instanceData->os.sync( command );
     }
 
-    NodePtr node = command.getNode();
+    NodePtr node = command.getRemoteNode();
     node->send( CMD_NODE_SYNC_OBJECT_REPLY, useCache /*preferMulticast*/ )
         << node->getNodeID() << command.getObjectID() << command.getRequestID()
         << true << command.useCache() << useCache;

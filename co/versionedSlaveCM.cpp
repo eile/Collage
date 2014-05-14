@@ -74,7 +74,7 @@ uint128_t VersionedSlaveCM::commit( const uint32_t )
 
     _ostream.enableSlaveCommit( _master );
     _object->pack( _ostream );
-    _ostream.disable();
+    _ostream.close();
 
     return _ostream.hasData() ? _ostream.getVersion() : VERSION_NONE;
 }
@@ -322,7 +322,7 @@ bool VersionedSlaveCM::_cmdData( ICommand& cmd )
     ObjectDataICommand command( cmd );
 
     LB_TS_THREAD( _rcvThread );
-    LBASSERT( command.getNode().isValid( ));
+    LBASSERT( command.getRemoteNode( ));
 
     if( !_currentIStream )
         _currentIStream = _iStreamCache.alloc();

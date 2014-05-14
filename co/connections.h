@@ -33,15 +33,17 @@ namespace co
 /** @internal
  * Collect all connections of a set of nodes.
  *
- * Gives priority to multicast connections if a multicast connection is used
+ * Can give priority to multicast connections if a multicast connection is used
  * more than once. Connections are added to the result vector. Multicast
  * connections are added at most once. The result vector should be empty on
  * entry. The order of connections may not match the order of nodes.
  *
  * @param nodes the nodes to send to.
+ * @param multicast prefer multicast connection
  * @param result the connection vector receiving new connections.
  */
-inline Connections gatherConnections( const Nodes& nodes )
+inline Connections gatherConnections( const Nodes& nodes,
+                                      const bool multicast = true )
 {
     Connections result;
     typedef stde::hash_map< ConstConnectionDescriptionPtr, NodePtr,
@@ -55,7 +57,7 @@ inline Connections gatherConnections( const Nodes& nodes )
     for( Nodes::const_iterator i = nodes.begin(); i != nodes.end(); ++i )
     {
         NodePtr node = *i;
-        ConnectionPtr connection = node->getConnection( true /* preferMC */);
+        ConnectionPtr connection = node->getConnection( multicast );
         LBASSERT( connection );
         if( !connection )
             continue;
