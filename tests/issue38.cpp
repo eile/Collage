@@ -131,16 +131,11 @@ void runMPITest()
             threads[i].startSend( writers[i] );
         }
 
-        const float runtime = threads[0].runtime;
-        const float delta = runtime / 10.f;
         for( size_t i = 0; i < NCONNECTIONS; ++i )
         {
             threads[i].join();
             writers[i]->close();
-            TESTINFO( std::abs( threads[i].runtime - runtime ) < delta ,
-                      threads[i].runtime << " != " << runtime );
         }
-
     }
 }
 #endif

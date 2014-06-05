@@ -269,6 +269,56 @@ int64_t MPIConnection::Dispatcher::_receiveMessage( void * buffer,
     return bytesRead;
 }
 
+bool MPIConnection::Dispatcher::_waitAndCheckEOF( )
+{
+    MPI_Status status;
+    if( MPI_SUCCESS != MPI_Probe( MPI_ANY_SOURCE,
+                                    _tag,
+                                    MPI_COMM_WORLD,
+                                    &status ) )
+    {
+        LBERROR << "Error retrieving messages " << std::endl;
+        return true;
+    }
+
+    int32_t bytesR = 0;
+
+    /** Consult number of bytes received. */
+    if( MPI_SUCCESS != MPI_Get_count( &status, MPI_BYTE, &bytesR) )
+    {
+        LBERROR << "Error retrieving messages " << std::endl;
+        return true;
+    }
+
+    if(bytesR == 1)
+    {
+        _bufferData = new unsigned char[1];
+        _startData = _bufferData;
+        _bytesReceived = 1;
+
+        /* Receive the message, this call is not blocking due to the
+         * previous MPI_Probe call.
+         */
+        if( MPI_SUCCESS != MPI_Recv( _bufferData, bytesR, MPI_BYTE,
+                                     status.MPI_SOURCE,
+                                     _tag,
+                                     MPI_COMM_WORLD,
+                                     MPI_STATUS_IGNORE ) )
+        {
+            LBERROR << "Error retrieving messages " << std::endl;
+            return true;
+        }
+        if( bytesR == 1 &&
+            (_bufferData)[0] == 0xFF )
+        {
+            LBINFO << "Got EOF, closing connection" << std::endl;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void MPIConnection::Dispatcher::run()
 {
     int64_t bytesRead = 0;
@@ -288,17 +338,11 @@ void MPIConnection::Dispatcher::run()
         /** Waiting for new data if there is not available. */
         if( _bytesReceived == 0 )
         {
-            MPI_Status status;
-            if( MPI_SUCCESS != MPI_Probe( MPI_ANY_SOURCE,
-                                            _tag,
-                                            MPI_COMM_WORLD,
-                                            &status ) )
+            if( _waitAndCheckEOF( ) )
             {
-                LBERROR << "Error retrieving messages " << std::endl;
-                bytesRead  = -1;
+                bytesRead = -1;
                 break;
             }
-
             _notifier->set();
         }
 
@@ -405,7 +449,7 @@ bool MPIConnection::Dispatcher::close()
         return false;
     }
     if( !endOneself )
-        MPI_Cancel( &toOneself );
+        if( MPI_SUCCESS != MPI_Cancel( &toOneself ) )
         {
             LBWARN << "Error sending eof to remote " << std::endl;
             return false;

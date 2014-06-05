@@ -30,7 +30,7 @@
 #ifdef COLLAGE_USE_MPI
 #  include <lunchbox/mpi.h>
 #  include <mpi.h>
-#  define NPACKETS   (23456)
+#  define NPACKETS   (1000)
 #endif
 
 
@@ -262,7 +262,6 @@ bool _initialize( co::ConnectionDescriptionPtr desc,
     TEST( writer );
     return true;
 }
->>>>>>> eyescale/master
 }
 
 int main( int argc, char **argv )

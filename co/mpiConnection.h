@@ -113,6 +113,8 @@ class MPIConnection : public Connection
 
             int64_t _receiveMessage( void * buffer, int64_t bytes );
 
+            bool _waitAndCheckEOF( );
+
             const int32_t _rank;
             const int32_t _source;
             const int32_t _tag;
