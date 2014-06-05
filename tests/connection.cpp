@@ -30,11 +30,14 @@
 #ifdef COLLAGE_USE_MPI
 #  include <lunchbox/mpi.h>
 #  include <mpi.h>
+#  define NPACKETS   (23456)
 #endif
 
 
-#define PACKETSIZE (12345)
-#define NPACKETS   (23456)
+#define PACKETSIZE (123456)
+#define RUNTIME (1000) // ms
+
+lunchbox::Monitor< bool > s_done( false );
 
 namespace
 {
@@ -45,9 +48,6 @@ static co::ConnectionType types[] =
     co::CONNECTIONTYPE_NAMEDPIPE,
     co::CONNECTIONTYPE_RSP,
     co::CONNECTIONTYPE_RDMA,
-#ifdef COLLAGE_USE_MPI
-    co::CONNECTIONTYPE_MPI,
-#endif
 //    co::CONNECTIONTYPE_UDT,
     co::CONNECTIONTYPE_NONE // must be last
 };
@@ -56,27 +56,75 @@ class Reader : public lunchbox::Thread
 {
 public:
     Reader( co::ConnectionPtr connection ) : connection_( connection )
-    {
-        TEST( start( ));
-    }
+        { TEST( start( )); }
 
     void run() override
     {
+        co::ConnectionPtr listener = connection_;
+        connection_ = listener->acceptSync();
+        TESTINFO( connection_, listener->getDescription( ));
+
         co::Buffer buffer;
         co::BufferPtr syncBuffer;
+        buffer.reserve( PACKETSIZE );
+        uint64_t& sequence = *reinterpret_cast< uint64_t* >( buffer.getData( ));
+        sequence = 0;
+        uint64_t i = 0;
 
-        for( size_t i = 0; i < NPACKETS; ++i )
+        s_done = false;
+
+        while( sequence != 0xdeadbeef )
         {
             connection_->recvNB( &buffer, PACKETSIZE );
             TEST( connection_->recvSync( syncBuffer ));
             TEST( syncBuffer == &buffer );
             TEST( buffer.getSize() == PACKETSIZE );
+            TEST( sequence == ++i || sequence == 0xdeadbeef );
             buffer.setSize( 0 );
         }
 
+        s_done = true;
         connection_->recvNB( &buffer, PACKETSIZE );
         TEST( !connection_->recvSync( syncBuffer ));
+#ifndef _WIN32
         TEST( connection_->isClosed( ));
+#endif
+        connection_ = 0;
+    }
+
+private:
+    co::ConnectionPtr connection_;
+};
+
+class Latency : public lunchbox::Thread
+{
+public:
+    Latency( co::ConnectionPtr connection ) : connection_( connection )
+        { TEST( start( )); }
+
+    void run() override
+    {
+        connection_ = connection_->acceptSync();
+        co::Buffer buffer;
+        co::BufferPtr syncBuffer;
+        buffer.reserve( sizeof( uint64_t ));
+        uint64_t& sequence = *reinterpret_cast< uint64_t* >( buffer.getData( ));
+        sequence = 0;
+        s_done = false;
+
+        while( sequence != 0xC0FFEE )
+        {
+            connection_->recvNB( &buffer, sizeof( uint64_t ));
+            TEST( connection_->recvSync( syncBuffer ));
+            buffer.setSize( 0 );
+        }
+
+        s_done = true;
+        connection_->recvNB( &buffer, sizeof( uint64_t ));
+        TEST( !connection_->recvSync( syncBuffer ));
+#ifndef _WIN32
+        TEST( connection_->isClosed( ));
+#endif
         connection_ = 0;
     }
 
@@ -87,97 +135,139 @@ private:
 #ifdef COLLAGE_USE_MPI
 void runMPITest()
 {
-    for( size_t i = 0; types[i] != co::CONNECTIONTYPE_NONE; ++i )
+    co::ConnectionDescriptionPtr desc = new co::ConnectionDescription;
+    desc->type = co::CONNECTIONTYPE_MPI;
+    desc->rank = 0;
+    desc->port = 2048;
+    desc->setHostname( "127.0.0.1" );
+
+    lunchbox::Clock clock;
+    lunchbox::MPI mpi;
+
+    if( mpi.getRank() == 0 )
     {
-        if( types[i] != co::CONNECTIONTYPE_TCPIP &&
-            types[i] != co::CONNECTIONTYPE_MPI )
-            continue;
-
-        co::ConnectionDescriptionPtr desc = new co::ConnectionDescription;
-        desc->type = types[i];
-        desc->rank = 0;
-        desc->port = 2048;
-        desc->setHostname( "127.0.0.1" );
-
-        lunchbox::Clock clock;
-        lunchbox::MPI mpi;
-
-        if( mpi.getRank() == 0 )
+        co::ConnectionPtr listener = co::Connection::create( desc );
+        if( !listener )
         {
-            co::ConnectionPtr listener = co::Connection::create( desc );
-            if( !listener )
-            {
-                std::cout << desc->type << ": not supported" << std::endl;
-                continue;
-            }
+            std::cout << desc->type << ": not supported" << std::endl;
+            return;
+        }
 
-            MPI_Barrier( MPI_COMM_WORLD );
+        MPI_Barrier( MPI_COMM_WORLD );
 
-            const bool listening = listener->listen();
-            if( !listening )
-                continue;
+        const bool listening = listener->listen();
+        if( !listening )
+            return;
 
-            TESTINFO( listening, desc );
-            listener->acceptNB();
-            co::ConnectionPtr reader = listener->acceptSync();
+        TESTINFO( listening, desc );
+        listener->acceptNB();
+        co::ConnectionPtr reader = listener->acceptSync();
 
-            TEST( reader );
+        TEST( reader );
 
-            co::Buffer buffer;
-            co::BufferPtr syncBuffer;
+        co::Buffer buffer;
+        co::BufferPtr syncBuffer;
 
-            clock.reset();
-            for( size_t j = 0; j < NPACKETS; ++j )
-            {
-                reader->recvNB( &buffer, PACKETSIZE );
-                TEST( reader->recvSync( syncBuffer ));
-                TEST( syncBuffer == &buffer );
-                TEST( buffer.getSize() == PACKETSIZE );
-                buffer.setSize( 0 );
-            }
-
+        clock.reset();
+        for( size_t j = 0; j < NPACKETS; ++j )
+        {
             reader->recvNB( &buffer, PACKETSIZE );
-            TEST( !reader->recvSync( syncBuffer ));
-            TEST( reader->isClosed( ));
-
-            if( listener.isValid( ))
-                TEST( listener->getRefCount() == 1 );
-            if( reader.isValid( ))
-                TEST( reader->getRefCount() == 1 );
-        }
-        else
-        {
-            MPI_Barrier( MPI_COMM_WORLD );
-
-            co::ConnectionPtr writer = co::Connection::create( desc );
-            TEST( writer->connect( ));
-
-            TEST( writer );
-            uint8_t out[ PACKETSIZE ];
-
-            clock.reset();
-            for( size_t j = 0; j < NPACKETS; ++j )
-                TEST( writer->send( out, PACKETSIZE ));
-
-            writer->close();
-
-            TEST( writer->getRefCount() == 1 );
+            TEST( reader->recvSync( syncBuffer ));
+            TEST( syncBuffer == &buffer );
+            TEST( buffer.getSize() == PACKETSIZE );
+            buffer.setSize( 0 );
         }
 
-        const float time = clock.getTimef();
+        reader->recvNB( &buffer, PACKETSIZE );
+        TEST( !reader->recvSync( syncBuffer ));
+        TEST( reader->isClosed( ));
 
-        std::cout << desc->type << " rank "
-                  << mpi.getRank() << ": "
-                  << NPACKETS * PACKETSIZE / 1024.f / 1024.f * 1000.f / time
-                  << " MB/s" << std::endl;
+        if( listener.isValid( ))
+            TEST( listener->getRefCount() == 1 );
+        if( reader.isValid( ))
+            TEST( reader->getRefCount() == 1 );
     }
+    else
+    {
+        MPI_Barrier( MPI_COMM_WORLD );
+
+        co::ConnectionPtr writer = co::Connection::create( desc );
+        TEST( writer->connect( ));
+
+        TEST( writer );
+        uint8_t out[ PACKETSIZE ];
+
+        clock.reset();
+        for( size_t j = 0; j < NPACKETS; ++j )
+            TEST( writer->send( out, PACKETSIZE ));
+
+        writer->close();
+
+        TEST( writer->getRefCount() == 1 );
+    }
+
+    const float time = clock.getTimef();
+
+    std::cout << desc->type << " rank "
+              << mpi.getRank() << ": "
+              << NPACKETS * PACKETSIZE / 1024.f / 1024.f * 1000.f / time
+              << " MB/s" << std::endl;
 }
 #endif
 
+bool _initialize( co::ConnectionDescriptionPtr desc,
+                  co::ConnectionPtr& listener,
+                  co::ConnectionPtr& writer )
+{
+    if( desc->type >= co::CONNECTIONTYPE_MULTICAST )
+        desc->setHostname( "239.255.12.34" );
+    else
+        desc->setHostname( "127.0.0.1" );
+
+    listener = co::Connection::create( desc );
+    if( !listener )
+    {
+        std::cout << desc->type << ": not supported" << std::endl;
+        return false;
+    }
+
+    switch( desc->type ) // different connections, different semantics...
+    {
+    case co::CONNECTIONTYPE_PIPE:
+        writer = listener;
+        break;
+
+    case co::CONNECTIONTYPE_RSP:
+        TESTINFO( listener->listen(), desc );
+        listener->acceptNB();
+
+        writer = listener;
+        break;
+
+    default:
+    {
+        const bool listening = listener->listen();
+        if( !listening && desc->type == co::CONNECTIONTYPE_RDMA )
+            return false; // No local IB adapter up
+
+        TESTINFO( listening, desc );
+        listener->acceptNB();
+
+        writer = co::Connection::create( desc );
+
+        break;
+    }
+    }
+
+    TEST( writer );
+    return true;
+}
+>>>>>>> eyescale/master
 }
 
 int main( int argc, char **argv )
 {
+    TEST(( PACKETSIZE % 8 ) == 0 );
     co::init( argc, argv );
 
     #ifdef COLLAGE_USE_MPI
@@ -198,93 +288,71 @@ int main( int argc, char **argv )
         co::ConnectionDescriptionPtr desc = new co::ConnectionDescription;
         desc->type = types[i];
 
-        switch( desc->type )
-        {
-        case co::CONNECTIONTYPE_MPI:
-            // The test is a singleton MPI process, there is just one rank
-            desc->rank = 0;
-            // A random MPI tag
-            desc->port = 125;
-            break;
-
-        default:
-            if( desc->type >= co::CONNECTIONTYPE_MULTICAST )
-                desc->setHostname( "239.255.12.34" );
-            else
-                desc->setHostname( "127.0.0.1" );
-            break;
-        }
-
-        co::ConnectionPtr listener = co::Connection::create( desc );
-        if( !listener )
-        {
-            std::cout << desc->type << ": not supported" << std::endl;
-            continue;
-        }
-
         co::ConnectionPtr writer;
-        co::ConnectionPtr reader;
+        co::ConnectionPtr listener;
 
-        switch( desc->type ) // different connections, different semantics...
-        {
-        case co::CONNECTIONTYPE_PIPE:
-            writer = listener;
-            TEST( writer->connect( ));
-            reader = writer->acceptSync();
-            break;
+        if( !_initialize( desc, listener, writer ))
+            continue;
 
-        case co::CONNECTIONTYPE_RSP:
-            TESTINFO( listener->listen(), desc );
-            listener->acceptNB();
-
-            writer = listener;
-            reader = listener->acceptSync();
-            break;
-
-        default:
-        {
-            const bool listening = listener->listen();
-            if( !listening && desc->type == co::CONNECTIONTYPE_RDMA )
-                continue; // No local IB adapter up
-
-            TESTINFO( listening, desc );
-            listener->acceptNB();
-
-            writer = co::Connection::create( desc );
+        Reader readThread( listener );
+        if( desc->type != co::CONNECTIONTYPE_RSP )
             TEST( writer->connect( ));
 
-            reader = listener->acceptSync();
-            break;
-        }
-        }
-
-        TEST( writer );
-        TEST( reader );
-
-        Reader readThread( reader );
-        uint8_t out[ PACKETSIZE ];
+        uint64_t out[ PACKETSIZE / 8 ];
 
         lunchbox::Clock clock;
-        for( size_t j = 0; j < NPACKETS; ++j )
-            TEST( writer->send( out, PACKETSIZE ));
+        uint64_t sequence = 0;
 
+        while( clock.getTime64() < RUNTIME )
+        {
+            out[0] = ++sequence;
+            TEST( writer->send( out, PACKETSIZE ));
+        }
+
+        out[0] = 0xdeadbeef;
+        TEST( writer->send( out, PACKETSIZE ));
+
+        s_done.waitEQ( true );
         writer->close();
         readThread.join();
-        const float time = clock.getTimef();
+        listener->close();
+        const float bwTime = clock.getTimef();
+        const uint64_t numBW = sequence;
+
+        TEST( _initialize( desc, listener, writer ));
+        Latency latency( listener );
+        if( desc->type != co::CONNECTIONTYPE_RSP )
+            TEST( writer->connect( ));
+        sequence = 0;
+        clock.reset();
+
+        while( clock.getTime64() < RUNTIME )
+        {
+            ++sequence;
+            TEST( writer->send( &sequence, sizeof( uint64_t )));
+        }
+
+        sequence = 0xC0FFEE;
+        TEST( writer->send( &sequence, sizeof( uint64_t )));
+
+        s_done.waitEQ( true );
+        writer->close();
+        latency.join();
+        listener->close();
+
+        const float latencyTime = clock.getTimef();
+        const float mFactor = 1024.f / 1024.f * 1000.f;
 
         std::cout << desc->type << ": "
-                  << NPACKETS * PACKETSIZE / 1024.f / 1024.f * 1000.f / time
-                  << " MB/s" << std::endl;
+                  << (numBW+1) * PACKETSIZE / mFactor / bwTime
+                  << " MBps, " << (sequence+1) / mFactor / latencyTime
+                  << " Mpps" << std::endl;
 
         if( listener == writer )
             listener = 0;
-        if( reader == writer )
-            reader = 0;
 
-        if( listener.isValid( ))
-            TEST( listener->getRefCount() == 1 );
-        if( reader.isValid( ))
-            TEST( reader->getRefCount() == 1 );
+        TESTINFO( !listener || listener->getRefCount() == 1,
+                  listener->getRefCount());
         TEST( writer->getRefCount() == 1 );
     }
 
