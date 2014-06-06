@@ -341,6 +341,7 @@ void MPIConnection::Dispatcher::run()
             if( _waitAndCheckEOF( ) )
             {
                 bytesRead = -1;
+                _notifier->set();
                 break;
             }
             _notifier->set();

@@ -24,6 +24,7 @@
 #include <co/init.h>
 #ifdef COLLAGE_USE_MPI
 #  include <lunchbox/mpi.h>
+#  include <mpi.h>
 #endif
 
 #include <lunchbox/clock.h>
@@ -109,6 +110,8 @@ void runMPITest()
             buffer.setSize( 0 );
         }
 
+        MPI_Barrier( MPI_COMM_WORLD );
+
         const co::Connections& connections = set.getConnections();
         while( !connections.empty( ))
         {
@@ -130,6 +133,8 @@ void runMPITest()
 
             threads[i].startSend( writers[i] );
         }
+
+        MPI_Barrier( MPI_COMM_WORLD );
 
         for( size_t i = 0; i < NCONNECTIONS; ++i )
         {
