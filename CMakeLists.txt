@@ -36,6 +36,10 @@ set(COLLAGE_DEPENDENT_LIBRARIES Lunchbox)
 include(Common)
 include(FindPackages)
 
+if(MPI_FOUND)
+  add_definitions(-DMPICH_SKIP_MPICXX)
+endif()
+
 if(NOT MSVC)
   set(PTHREAD_LIBRARIES pthread)
 endif()

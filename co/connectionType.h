@@ -36,6 +36,7 @@ namespace co
         CONNECTIONTYPE_IB,        //!< @deprecated Win XP Infiniband RDMA
         CONNECTIONTYPE_RDMA,      //!< Infiniband RDMA CM
         CONNECTIONTYPE_UDT,       //!< UDT connection
+        CONNECTIONTYPE_MPI,       //!< MPI connection
         CONNECTIONTYPE_MULTICAST = 0x100, //!< @internal MC types after this:
         CONNECTIONTYPE_RSP        //!< UDP-based reliable stream protocol
     };
@@ -54,6 +55,7 @@ namespace co
             case CONNECTIONTYPE_NONE: return os << "NONE";
             case CONNECTIONTYPE_RDMA: return os << "RDMA";
             case CONNECTIONTYPE_UDT: return os << "UDT";
+            case CONNECTIONTYPE_MPI: return os << "MPI";
 
             default:
                 LBASSERTINFO( false, "Not implemented" );

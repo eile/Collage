@@ -40,6 +40,9 @@
 #ifdef COLLAGE_USE_UDT
 #  include "udtConnection.h"
 #endif
+#ifdef COLLAGE_USE_MPI
+#   include "mpiConnection.h"
+#endif
 
 #include <lunchbox/scopedMutex.h>
 #include <lunchbox/stdExt.h>
@@ -171,6 +174,22 @@ ConnectionPtr Connection::create( ConnectionDescriptionPtr description )
 #ifdef COLLAGE_USE_UDT
         case CONNECTIONTYPE_UDT:
             connection = new UDTConnection;
+            break;
+#endif
+#ifdef COLLAGE_USE_MPI
+        case CONNECTIONTYPE_MPI:
+            /* Check if MPI is allowed: Thread support has to be provided by the
+             * MPI library, if not the MPI connection is disabled to avoid
+             * future errors.  TODO: fix it.
+             */
+            // Braces, crosses initialization of ‘lunchbox::MPI mpi’
+            {
+                lunchbox::MPI mpi;
+                if( !mpi.supportsThreads() )
+                    return 0;
+            }
+
+            connection = new MPIConnection;
             break;
 #endif
 

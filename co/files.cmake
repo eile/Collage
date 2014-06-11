@@ -168,5 +168,10 @@ if(UDT_FOUND)
   list(APPEND COLLAGE_SOURCES udtConnection.cpp)
 endif()
 
+if(MPI_FOUND)
+  list(APPEND COLLAGE_HEADERS mpiConnection.h)
+  list(APPEND COLLAGE_SOURCES mpiConnection.cpp)
+endif()
+
 list(SORT COLLAGE_HEADERS)
 list(SORT COLLAGE_SOURCES)
