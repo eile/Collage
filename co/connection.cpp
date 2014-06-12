@@ -191,6 +191,7 @@ ConnectionPtr Connection::create( ConnectionDescriptionPtr description )
 
             connection = new MPIConnection;
             break;
+        }
 #endif
 
         default:
