@@ -178,15 +178,15 @@ ConnectionPtr Connection::create( ConnectionDescriptionPtr description )
 #endif
 #ifdef COLLAGE_USE_MPI
         case CONNECTIONTYPE_MPI:
-            /* Check if MPI is allowed: Thread support has to be provided by the
-             * MPI library, if not the MPI connection is disabled to avoid
-             * future errors.  TODO: fix it.
-             */
-            // Braces, crosses initialization of ‘lunchbox::MPI mpi’
+        {
+            // Thread support has to be provided by the MPI library, if not the
+            // MPI connection is disabled to avoid future errors.  TODO: fix it.
+            lunchbox::MPI mpi;
+            if( !mpi.supportsThreads( ))
             {
-                lunchbox::MPI mpi;
-                if( !mpi.supportsThreads() )
-                    return 0;
+                LBWARN << "No MPI support, thread-safe execution not available"
+                       << std::endl;
+                return 0;
             }
 
             connection = new MPIConnection;
