@@ -36,8 +36,6 @@ set(COLLAGE_DEPENDENT_LIBRARIES Lunchbox)
 include(Common)
 include(FindPackages)
 
-list(APPEND CPPCHECK_EXTRA_ARGS -DCO_API=)
-
 if(MPI_FOUND)
   add_definitions(-DMPICH_SKIP_MPICXX)
 endif()
