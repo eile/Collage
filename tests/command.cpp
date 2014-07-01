@@ -18,11 +18,8 @@
 #include <co/co.h>
 #include <test.h>
 #include <lunchbox/clock.h>
+#include <lunchbox/mpi.h>
 #include <lunchbox/rng.h>
-#ifdef COLLAGE_USE_MPI
-#  include <lunchbox/mpi.h>
-#  include <mpi.h>
-#endif
 
 #define NCOMMANDS 10000
 

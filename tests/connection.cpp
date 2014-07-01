@@ -29,7 +29,6 @@
 
 #ifdef COLLAGE_USE_MPI
 #  include <lunchbox/mpi.h>
-#  include <mpi.h>
 #  define NPACKETS   (1000)
 #endif
 
@@ -208,8 +207,7 @@ void runMPITest()
 
     const float time = clock.getTimef();
 
-    std::cout << desc->type << " rank "
-              << mpi.getRank() << ": "
+    std::cout << desc->type << " rank " << mpi.getRank() << ": "
               << NPACKETS * PACKETSIZE / 1024.f / 1024.f * 1000.f / time
               << " MB/s" << std::endl;
 }

@@ -31,12 +31,11 @@ namespace
 {
 
 /*
- * Every connection inside a process has a unique MPI tag.
- * This class allows to register a MPI tag and get a new unique tag.
+ * Every connection inside a process has a unique MPI tag. This class allows to
+ * register a MPI tag and get a new unique tag.
  *
- * Due to the tag is defined by a 16 bits integer on
- * ConnectionDescription ( the real name is port but it
- * is reused for this purpuse ). The listeners always
+ * Due to the tag is defined by a 16 bits integer on ConnectionDescription ( the
+ * real name is port but it is reused for this purpuse ). The listeners always
  * use tags [ 0, 65535 ] and others [ 65536, 2147483648 ].
  */
 static class TagManager
@@ -98,18 +97,18 @@ namespace co
 {
 
 MPIConnection::Dispatcher::Dispatcher( const int32_t rank,
-                                        const int32_t source,
-                                        const int32_t tag,
-                                        const int32_t tagClose,
-                                        EventConnectionPtr notifier)
-        :  _rank( rank )
-        , _source( source )
-        , _tag( tag )
-        , _tagClose( tagClose )
-        , _notifier( notifier )
-        , _bufferData( 0 )
-        , _startData( 0 )
-        , _bytesReceived( 0 )
+                                       const int32_t source,
+                                       const int32_t tag,
+                                       const int32_t tagClose,
+                                       EventConnectionPtr notifier)
+    :  _rank( rank )
+    , _source( source )
+    , _tag( tag )
+    , _tagClose( tagClose )
+    , _notifier( notifier )
+    , _bufferData( 0 )
+    , _startData( 0 )
+    , _bytesReceived( 0 )
 {
     start();
 }

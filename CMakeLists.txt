@@ -36,10 +36,6 @@ set(COLLAGE_DEPENDENT_LIBRARIES Lunchbox)
 include(Common)
 include(FindPackages)
 
-if(MPI_FOUND)
-  add_definitions(-DMPICH_SKIP_MPICXX)
-endif()
-
 if(NOT MSVC)
   set(PTHREAD_LIBRARIES pthread)
 endif()
@@ -47,6 +43,8 @@ endif()
 if(APPLE)
   add_definitions(-DDarwin)
 endif(APPLE)
+
+add_definitions(-DMPICH_SKIP_MPICXX)
 
 add_subdirectory(tools)
 add_subdirectory(tests)

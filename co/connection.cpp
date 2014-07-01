@@ -41,7 +41,7 @@
 #  include "udtConnection.h"
 #endif
 #ifdef COLLAGE_USE_MPI
-#   include "mpiConnection.h"
+#  include "mpiConnection.h"
 #endif
 
 #include <lunchbox/scopedMutex.h>
@@ -184,7 +184,7 @@ ConnectionPtr Connection::create( ConnectionDescriptionPtr description )
             lunchbox::MPI mpi;
             if( !mpi.supportsThreads( ))
             {
-                LBWARN << "No MPI support, thread-safe execution not available"
+                LBWARN << "Thread-safe MPI execution not available, no MPI connection"
                        << std::endl;
                 return 0;
             }

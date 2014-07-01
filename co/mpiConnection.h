@@ -41,129 +41,127 @@ typedef lunchbox::RefPtr< co::EventConnection > EventConnectionPtr;
 
 }
 
-/* MPI connection
- * Allows peer-to-peer connections if the MPI runtime environment has
- * been set correctly.
+/**
+ * Connection implementing a peer-to-peer on top of MPI.
  *
- * Due to Collage is a multithreaded library, MPI connections
- * requiere at least MPI_THREAD_SERIALIZED level of thread support.
- * During the initialization Collage will request the appropriate
- * thread support but if the MPI library does not provide it, MPI
- * connections will be disabled. If the application uses a MPI
- * connection when disabled, the connection should not be created.
+ * Needs thread-safe MPI implementation: Due to Collage is a multithreaded
+ * library, MPI connections require at least MPI_THREAD_SERIALIZED level of
+ * thread support. During the initialization, Lunchbox::MPI will request the
+ * appropriate thread support but if the MPI library or provide it, MPI
+ * connections will be disabled in Connection::create(). If the application uses
+ * a MPI connection when disabled, the connection should not be created.
  */
 class MPIConnection : public Connection
 {
+public:
+    /** Construct a new MPI connection. */
+    CO_API MPIConnection();
+
+    /** Destruct this MPI connection. */
+    CO_API ~MPIConnection();
+
+    virtual bool connect();
+    virtual bool listen();
+    virtual void close() { _close(); }
+
+    virtual void acceptNB();
+    virtual ConnectionPtr acceptSync();
+
+    virtual Notifier getNotifier() const;
+
+    void setPeerRank( int32_t peerRank ) { _peerRank = peerRank; }
+    void setTagSend( int32_t tagSend ) { _tagSend = tagSend; }
+    void setTagRecv( int32_t tagRecv ) { _tagRecv = tagRecv; }
+    void startDispatcher();
+    int32_t getRank() { return _rank; }
+    int32_t getPeerRank() { return _peerRank; }
+    int32_t getTagSend() { return _tagSend; }
+    int32_t getTagRecv() { return _tagRecv; }
+
+protected:
+    void readNB( void* , const uint64_t ) { /* NOP */ }
+    int64_t readSync( void* buffer, const uint64_t bytes,
+                      const bool ignored);
+    int64_t write( const void* buffer, const uint64_t bytes );
+
+private:
+    void _close();
+
+    struct Petition
+    {
+        int64_t bytes;
+        void *  data;
+    };
+
+    class Dispatcher : lunchbox::Thread
+    {
     public:
-        /** Construct a new MPI connection. */
-        CO_API MPIConnection();
+        Dispatcher( const int32_t rank, const int32_t source,
+                    const int32_t tag, const int32_t tagClose,
+                    EventConnectionPtr notifier);
 
-        /** Destruct this MPI connection. */
-        CO_API ~MPIConnection();
+        ~Dispatcher();
 
-        virtual bool connect();
-        virtual bool listen();
-        virtual void close() { _close(); }
+        virtual void run();
 
-        virtual void acceptNB();
-        virtual ConnectionPtr acceptSync();
+        int64_t readSync(void * buffer, const int64_t bytes);
 
-        virtual Notifier getNotifier() const;
-
-        void setPeerRank( int32_t peerRank ) { _peerRank = peerRank; }
-        void setTagSend( int32_t tagSend ) { _tagSend = tagSend; }
-        void setTagRecv( int32_t tagRecv ) { _tagRecv = tagRecv; }
-        void startDispatcher();
-        int32_t getRank() { return _rank; }
-        int32_t getPeerRank() { return _peerRank; }
-        int32_t getTagSend() { return _tagSend; }
-        int32_t getTagRecv() { return _tagRecv; }
-
-    protected:
-        void readNB( void* , const uint64_t ) { /* NOP */ }
-        int64_t readSync( void* buffer, const uint64_t bytes,
-                          const bool ignored);
-        int64_t write( const void* buffer, const uint64_t bytes );
-
+        bool close();
     private:
-        void _close();
+        int64_t _copyFromBuffer( void * buffer, const int64_t bytes );
 
-        struct Petition
-        {
-            int64_t bytes;
-            void *  data;
-        };
+        int64_t _receiveMessage( void * buffer, int64_t bytes );
 
-        class Dispatcher : lunchbox::Thread
-        {
-        public:
-            Dispatcher( const int32_t rank, const int32_t source,
-                        const int32_t tag, const int32_t tagClose,
-                        EventConnectionPtr notifier);
+        bool _waitAndCheckEOF( );
 
-            ~Dispatcher();
+        const int32_t _rank;
+        const int32_t _source;
+        const int32_t _tag;
+        const int32_t _tagClose;
 
-            virtual void run();
+        EventConnectionPtr _notifier;
 
-            int64_t readSync(void * buffer, const int64_t bytes);
+        unsigned char * _bufferData;
+        unsigned char * _startData;
+        int64_t         _bytesReceived;
 
-            bool close();
-        private:
-            int64_t _copyFromBuffer( void * buffer, const int64_t bytes );
+        lunchbox::MTQueue< Petition > _dispatcherQ;
+        lunchbox::MTQueue< int64_t >  _readyQ;
 
-            int64_t _receiveMessage( void * buffer, int64_t bytes );
+    };
 
-            bool _waitAndCheckEOF( );
+    /* Due to accept a new connection when listening is an asynchronous process,
+     * this class performs the accepting process in a different thread.
+     */
+    class AsyncConnection : lunchbox::Thread
+    {
+    public:
+        AsyncConnection( MPIConnection * detail, const int32_t tag,
+                         EventConnectionPtr notifier);
+        void abort();
 
-            const int32_t _rank;
-            const int32_t _source;
-            const int32_t _tag;
-            const int32_t _tagClose;
+        bool wait();
 
-            EventConnectionPtr _notifier;
+        MPIConnection * getImpl();
 
-            unsigned char * _bufferData;
-            unsigned char * _startData;
-            int64_t         _bytesReceived;
+        virtual void run();
+    private:
+        MPIConnection * _detail;
+        const int32_t   _tag;
+        bool            _status;
 
-            lunchbox::MTQueue< Petition > _dispatcherQ;
-            lunchbox::MTQueue< int64_t >  _readyQ;
+        EventConnectionPtr  _notifier;
+    };
 
-        };
+    int32_t     _rank;
+    int32_t     _peerRank;
+    int32_t     _tagSend;
+    int32_t     _tagRecv;
 
-        /* Due to accept a new connection when listenting is
-         * an asynchronous process, this class perform the
-         * accepting process in a different thread.
-         */
-        class AsyncConnection : lunchbox::Thread
-        {
-        public:
-            AsyncConnection( MPIConnection * detail, const int32_t tag,
-                                EventConnectionPtr notifier);
-            void abort();
+    AsyncConnection * _asyncConnection;
+    Dispatcher  *     _dispatcher;
 
-            bool wait();
-
-            MPIConnection * getImpl();
-
-            virtual void run();
-        private:
-            MPIConnection * _detail;
-            const int32_t   _tag;
-            bool            _status;
-
-            EventConnectionPtr  _notifier;
-        };
-
-        int32_t     _rank;
-        int32_t     _peerRank;
-        int32_t     _tagSend;
-        int32_t     _tagRecv;
-
-        AsyncConnection * _asyncConnection;
-        Dispatcher  *     _dispatcher;
-
-        EventConnectionPtr  _event;
+    EventConnectionPtr  _event;
 };
 
 }

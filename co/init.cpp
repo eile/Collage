@@ -24,11 +24,9 @@
 #include "socketConnection.h"
 
 #include <lunchbox/init.h>
+#include <lunchbox/mpi.h>
 #include <lunchbox/os.h>
 #include <lunchbox/pluginRegistry.h>
-#ifdef COLLAGE_USE_MPI
-#  include <lunchbox/mpi.h>
-#endif
 
 namespace co
 {
@@ -45,6 +43,7 @@ static int32_t _checkVersion()
 }
 
 static lunchbox::a_int32_t _initialized( _checkVersion( ));
+static lunchbox::MPI* _mpi = 0;
 }
 
 bool _init( const int argc, char** argv )
@@ -54,10 +53,6 @@ bool _init( const int argc, char** argv )
 
     if( !lunchbox::init( argc, argv ))
         return false;
-
-    #ifdef COLLAGE_USE_MPI
-    static lunchbox::MPI mpi( (int&)argc, argv );
-    #endif
 
     // init all available plugins
     lunchbox::PluginRegistry& plugins = Global::getPluginRegistry();
@@ -76,6 +71,8 @@ bool _init( const int argc, char** argv )
     }
 #endif
 
+    LBASSERT( !_mpi );
+    _mpi = new lunchbox::MPI( argc, argv );
     return true;
 }
 
@@ -84,6 +81,10 @@ bool exit()
     if( --_initialized > 0 ) // not last
         return true;
     LBASSERT( _initialized == 0 );
+
+    LBASSERT( _mpi );
+    delete _mpi;
+    _mpi = 0;
 
 #ifdef _WIN32
     if( WSACleanup() != 0 )
