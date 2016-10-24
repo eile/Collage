@@ -47,14 +47,14 @@ static co::uint128_t _objectID( 0x25625429A197D730ull, 0x79F60861189007D5ull );
 template< class C >
 bool commandHandler( C command, Buffer& buffer, const uint64_t seed );
 
-class Object : public co::Serializable
+class Object : public co::Object
 {
 private:
     Buffer buffer_;
 
     void attach( const co::uint128_t& id, const uint32_t instanceID ) override
     {
-        co::Serializable::attach( id, instanceID );
+        co::Object::attach( id, instanceID );
 
         registerCommand( co::CMD_OBJECT_CUSTOM,
                          co::CommandFunc< Object >( this, &Object::_cmdCustom ),

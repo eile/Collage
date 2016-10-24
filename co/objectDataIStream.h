@@ -1,6 +1,6 @@
 
-/* Copyright (c) 2007-2013, Stefan Eilemann <eile@equalizergraphics.com>
- *                    2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+/* Copyright (c) 2007-2016, Stefan Eilemann <eile@equalizergraphics.com>
+ *                          Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -60,7 +60,7 @@ namespace co
         CO_API LocalNodePtr getLocalNode() const override;
 
     protected:
-        bool getNextBuffer( uint32_t& compressor, uint32_t& nChunks,
+        bool getNextBuffer( CompressorInfo& compressor, uint32_t& nChunks,
                             const void** chunkData, uint64_t& size ) override;
 
     private:

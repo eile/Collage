@@ -33,6 +33,8 @@
 #include <co/objectDataOCommand.h> // private header
 #include <co/objectDataICommand.h> // private header
 
+#include <pression/data/CompressorInfo.h>
+
 // Tests the functionality of the DataOStream and DataIStream
 
 #define CONTAINER_SIZE LB_64KB
@@ -73,7 +75,7 @@ public:
     co::LocalNodePtr getLocalNode() const override { return 0; }
 
 protected:
-    bool getNextBuffer( uint32_t& compressor, uint32_t& nChunks,
+    bool getNextBuffer( co::CompressorInfo& info, uint32_t& nChunks,
                         const void** chunkData, uint64_t& size ) final
     {
         co::ICommand cmd = _commands.tryPop();
@@ -85,7 +87,7 @@ protected:
         TEST( command.getCommand() == co::CMD_OBJECT_DELTA );
 
         size = command.getDataSize();
-        compressor = command.getCompressor();
+        info = command.getCompressorInfo();
         nChunks = command.getChunks();
         *chunkData = command.getRemainingBuffer( size );
         return true;

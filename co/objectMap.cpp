@@ -166,7 +166,6 @@ void ObjectMap::_commitMasters( const uint32_t incarnation )
 
 void ObjectMap::serialize( DataOStream& os, const uint64_t dirtyBits )
 {
-    Serializable::serialize( os, dirtyBits );
     lunchbox::ScopedFastWrite mutex( _impl->lock );
     if( dirtyBits == DIRTY_ALL )
     {
@@ -194,7 +193,6 @@ void ObjectMap::serialize( DataOStream& os, const uint64_t dirtyBits )
 
 void ObjectMap::deserialize( DataIStream& is, const uint64_t dirtyBits )
 {
-    Serializable::deserialize( is, dirtyBits );
     lunchbox::ScopedFastWrite mutex( _impl->lock );
     if( dirtyBits == DIRTY_ALL )
     {
