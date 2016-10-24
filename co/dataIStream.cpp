@@ -196,20 +196,17 @@ const uint8_t* DataIStream::_decompress( const void* data,
     _impl->data.reset( dataSize );
     _impl->initCompressor( info );
 
-    std::vector< const uint8_t* > input( nChunks );
-    std::vector< size_t > sizes( nChunks );
+    std::vector< std::pair< const uint8_t*, size_t >> inputs( nChunks );
     for( uint32_t i = 0; i < nChunks; ++i )
     {
         const uint64_t size = *reinterpret_cast< const uint64_t* >( src );
-        sizes[ i ] = size;
         src += sizeof( uint64_t );
 
-        input[ i ] = src;
+        inputs[ i ] = { src, size };
         src += size;
     }
 
-    _impl->compressor->decompress( input, sizes,
-                                   _impl->data.getData(), dataSize );
+    _impl->compressor->decompress( inputs, _impl->data.getData(), dataSize );
     return _impl->data.getData();
 }
 

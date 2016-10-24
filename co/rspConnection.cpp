@@ -129,6 +129,10 @@ RSPConnection::~RSPConnection()
         delete _buffers.back();
         _buffers.pop_back();
     }
+#ifdef CO_INSTRUMENT_RSP
+    LBWARN << *this << std::endl;
+    instrumentClock.reset();
+#endif
 }
 
 void RSPConnection::_close()
@@ -434,7 +438,7 @@ void RSPConnection::_handleAcceptIDTimeout()
     ++_timeouts;
     if( _timeouts < 20 )
     {
-        LBLOG( LOG_RSP ) << "Announce " << _id << std::endl;
+        LBLOG( LOG_RSP ) << "Announce " << _id << " " << _timeouts << std::endl;
         _sendSimpleDatagram( ID_HELLO, _id );
     }
     else
