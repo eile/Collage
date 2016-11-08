@@ -954,6 +954,7 @@ void RSPConnection::_handleAcceptIDData( const size_t bytes )
             break;
 
         default:
+            LBERROR << "Got unexpected datagram type " << node.type <<std::endl;
             LBUNIMPLEMENTED;
             break;
     }
@@ -995,6 +996,7 @@ void RSPConnection::_handleInitData( const size_t bytes, const bool connected )
             return;
 
         default:
+            LBERROR << "Got unexpected datagram type " << node.type <<std::endl;
             LBUNIMPLEMENTED;
             break;
     }
