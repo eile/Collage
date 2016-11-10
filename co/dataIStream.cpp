@@ -172,7 +172,7 @@ bool DataIStream::_checkBuffer()
         _impl->input = 0;
         _impl->inputSize = 0;
 
-        if( !getNextBuffer( info, nChunks, &data, _impl->inputSize ))
+        if( !getNextBuffer( info, nChunks, data, _impl->inputSize ))
             return false;
 
         _impl->input = _decompress( data, info, nChunks, _impl->inputSize );

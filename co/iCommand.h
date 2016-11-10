@@ -108,7 +108,7 @@ private:
     //@{
     CO_API size_t nRemainingBuffers() const override;
     CO_API uint128_t getVersion() const override;
-    CO_API bool getNextBuffer( CompressorInfo&, uint32_t&, const void**,
+    CO_API bool getNextBuffer( CompressorInfo&, uint32_t&, const void*&,
                                uint64_t& ) override;
     //@}
 

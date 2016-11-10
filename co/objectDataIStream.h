@@ -61,7 +61,7 @@ namespace co
 
     protected:
         bool getNextBuffer( CompressorInfo& compressor, uint32_t& nChunks,
-                            const void** chunkData, uint64_t& size ) override;
+                            const void*& chunkData, uint64_t& size ) override;
 
     private:
         typedef std::deque< ICommand > CommandDeque;

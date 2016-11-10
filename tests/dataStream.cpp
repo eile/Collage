@@ -76,7 +76,7 @@ public:
 
 protected:
     bool getNextBuffer( co::CompressorInfo& info, uint32_t& nChunks,
-                        const void** chunkData, uint64_t& size ) final
+                        const void*& chunkData, uint64_t& size ) final
     {
         co::ICommand cmd = _commands.tryPop();
         if( !cmd.isValid( ))
@@ -89,7 +89,7 @@ protected:
         size = command.getDataSize();
         info = command.getCompressorInfo();
         nChunks = command.getChunks();
-        *chunkData = command.getRemainingBuffer( size );
+        chunkData = command.getRemainingBuffer( size );
         return true;
     }
 

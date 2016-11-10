@@ -173,7 +173,7 @@ uint128_t ICommand::getVersion() const
 }
 
 bool ICommand::getNextBuffer( CompressorInfo& info, uint32_t& nChunks,
-                              const void** chunkData, uint64_t& size )
+                              const void*& chunkData, uint64_t& size )
 {
     if( _impl->consumed ) // 2nd call
         _impl->buffer = 0;
@@ -182,8 +182,8 @@ bool ICommand::getNextBuffer( CompressorInfo& info, uint32_t& nChunks,
         return false;
 
     _impl->consumed = true;
-    *chunkData = _impl->buffer->getData();
-    size = reinterpret_cast< const uint64_t* >( *chunkData )[ 0 ];
+    chunkData = _impl->buffer->getData();
+    size = reinterpret_cast< const uint64_t* >( chunkData )[ 0 ];
     info = CompressorInfo();
     nChunks = 1;
     return true;

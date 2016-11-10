@@ -169,7 +169,7 @@ protected:
     CO_API virtual ~DataIStream();
 
     virtual bool getNextBuffer( CompressorInfo& info, uint32_t& nChunks,
-                                const void** chunkData, uint64_t& size ) = 0;
+                                const void*& chunkData, uint64_t& size ) = 0;
     //@}
 
 private:

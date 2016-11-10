@@ -152,7 +152,7 @@ uint128_t ObjectDataIStream::getPendingVersion() const
 }
 
 bool ObjectDataIStream::getNextBuffer( CompressorInfo& info, uint32_t& nChunks,
-                                       const void** chunkData, uint64_t& size )
+                                       const void*& chunkData, uint64_t& size )
 {
     if( _commands.empty( ))
     {
@@ -188,7 +188,7 @@ bool ObjectDataIStream::getNextBuffer( CompressorInfo& info, uint32_t& nChunks,
         command.get< uint128_t >(); // commit UUID
         break;
     }
-    *chunkData = command.getRemainingBuffer( command.getRemainingBufferSize( ));
+    chunkData = command.getRemainingBuffer( command.getRemainingBufferSize( ));
 
     setSwapping( command.isSwapping( ));
     return true;
