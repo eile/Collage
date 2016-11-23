@@ -932,8 +932,8 @@ bool ObjectStore::_cmdMapSuccess( ICommand& command )
     LBASSERT( object );
     LBASSERT( !object->isMaster( ));
 
-    object->setupChangeManager( Object::ChangeType( changeType ), false,
-                                _localNode, masterInstanceID );
+    object->setupChangeManager( changeType, false, _localNode,
+                                masterInstanceID );
     _attach( object, objectID, instanceID );
     return true;
 }
