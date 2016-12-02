@@ -162,7 +162,7 @@ public:
         lunchbox::Clock clock;
 #endif
         const auto& output = compressor->compress( src, size );
-        LBASSERT( !output.empty() );
+        LBASSERT( !output.empty( ));
         compressedDataSize = pression::data::getDataSize( output );
 
 #ifdef CO_INSTRUMENT_DATAOSTREAM

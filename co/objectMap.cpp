@@ -1,6 +1,6 @@
 
-/* Copyright (c) 2012-2013, Daniel Nachbaur <danielnachbaur@googlemail.com>
- *               2012-2014, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2012-2016, Daniel Nachbaur <danielnachbaur@googlemail.com>
+ *                          Stefan Eilemann <eile@eyescale.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *

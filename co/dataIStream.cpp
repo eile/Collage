@@ -121,9 +121,9 @@ void DataIStream::_read( void* data, uint64_t size )
     LBASSERT( _impl->input );
     if( size > _impl->inputSize - _impl->position )
     {
-        LBERROR << "Not enough data in input buffer: need " << size
-                << " bytes, " << _impl->inputSize - _impl->position << " left "
-                << std::endl;
+        LBERROR << "Not enough data in input buffer: need 0x" << std::hex << size
+                << " bytes, 0x" << _impl->inputSize - _impl->position << " left "
+                << std::dec << std::endl;
         LBUNREACHABLE;
         // TODO: Allow reads which are asymmetric to writes by reading from
         // multiple blocks here?
