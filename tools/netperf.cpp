@@ -21,9 +21,9 @@
 #define LB_RELEASE_ASSERT
 
 #include <co/co.h>
-#include <lunchbox/clock.h>
+#include <extra/Clock.h>
+#include <extra/sleep.h>
 #include <lunchbox/monitor.h>
-#include <lunchbox/sleep.h>
 #pragma warning(disable : 4275)
 #include <boost/program_options.hpp>
 #pragma warning(default : 4275)
@@ -78,7 +78,7 @@ public:
         ++_nSamples;
 
         if (_delay > 0)
-            lunchbox::sleep(_delay);
+            extra::sleep(_delay);
 
         if (time < 1000.f)
             return true;
@@ -126,7 +126,7 @@ public:
     }
 
 private:
-    lunchbox::Clock _clock;
+    extra::Clock _clock;
 
     co::Buffer _buffer;
     lunchbox::Monitor<bool> _hasConnection;
@@ -395,7 +395,7 @@ int main(int argc, char** argv)
             buffer[i] = static_cast<uint8_t>(i);
 
         const float mBytesSec = buffer.getSize() / 1024.0f / 1024.0f * 1000.0f;
-        lunchbox::Clock clock;
+        extra::Clock clock;
         size_t lastOutput = nPackets;
 
         clock.reset();
@@ -416,7 +416,7 @@ int main(int argc, char** argv)
                 clock.reset();
             }
             if (waitTime > 0)
-                lunchbox::sleep(waitTime);
+                extra::sleep(waitTime);
         }
         const float time = clock.getTimef();
         const size_t nSamples = lastOutput - nPackets;

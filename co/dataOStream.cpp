@@ -29,9 +29,10 @@
 #include "node.h"
 #include "types.h"
 
-#include <lunchbox/clock.h>
 #include <pression/data/Compressor.h>
 #include <pression/data/CompressorInfo.h>
+
+#include <extra/Clock.h>
 
 namespace co
 {
@@ -165,7 +166,7 @@ public:
         }
 
 #ifdef CO_INSTRUMENT_DATAOSTREAM
-        lunchbox::Clock clock;
+        extra::Clock clock;
 #endif
         const auto& output = compressor->compress(src, size);
         LBASSERT(!output.empty());

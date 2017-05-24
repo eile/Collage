@@ -24,11 +24,11 @@
 #include <co/api.h>
 #include <co/types.h>
 
-#include <lunchbox/clock.h>     // member
 #include <lunchbox/lockable.h>  // member
 #include <lunchbox/thread.h>    // member
 #include <lunchbox/uint128_t.h> // member
 
+#include <extra/Clock.h> // member
 #include <iostream>
 #include <unordered_map>
 
@@ -113,7 +113,6 @@ public:
     void expire(const int64_t age);
 
     bool isEmpty() { return _items->empty(); }
-
 private:
     struct Item
     {
@@ -134,7 +133,7 @@ private:
     const uint64_t _maxSize; //!<high-water mark to start releasing commands
     uint64_t _size;          //!< Current number of bytes stored
 
-    const lunchbox::Clock _clock; //!< Clock for item expiration
+    const extra::Clock _clock; //!< Clock for item expiration
 
     void _releaseItems(const uint32_t minUsage);
     void _releaseStreams(InstanceCache::Item& item);

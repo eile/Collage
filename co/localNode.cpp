@@ -41,7 +41,6 @@
 #include "worker.h"
 #include "zeroconf.h"
 
-#include <lunchbox/clock.h>
 #include <lunchbox/fork.h>
 #include <lunchbox/futureFunction.h>
 #include <lunchbox/hash.h>
@@ -49,7 +48,9 @@
 #include <lunchbox/request.h>
 #include <lunchbox/rng.h>
 #include <lunchbox/servus.h>
-#include <lunchbox/sleep.h>
+
+#include <extra/Clock.h>
+#include <extra/sleep.h>
 
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -198,7 +199,7 @@ public:
     co::ConnectionSet incoming;
 
     /** The process-global clock. */
-    lunchbox::Clock clock;
+    extra::Clock clock;
 
     /** The registered push handlers. */
     lunchbox::Lockable<HandlerHash, std::mutex> pushHandlers;
@@ -906,7 +907,7 @@ NodePtr LocalNode::_connect(const NodeID& nodeID, NodePtr peer)
         {
             lunchbox::RNG rng;
             // collision avoidance
-            lunchbox::sleep(rng.get<uint8_t>());
+            extra::sleep(rng.get<uint8_t>());
             break;
         }
         case CONNECT_BAD_STATE:
@@ -1158,7 +1159,7 @@ bool LocalNode::launch(NodePtr node, const std::string& command)
 
 NodePtr LocalNode::syncLaunch(const uint128_t& nodeID, const int64_t timeout)
 {
-    const lunchbox::Clock clock;
+    const extra::Clock clock;
 
     do
     {
@@ -1166,7 +1167,7 @@ NodePtr LocalNode::syncLaunch(const uint128_t& nodeID, const int64_t timeout)
         if (node && node->isConnected())
             return node;
 
-        lunchbox::sleep(100 /*ms*/);
+        extra::sleep(100 /*ms*/);
     } while (timeout == static_cast<int32_t>(LB_TIMEOUT_INDEFINITE) ||
              clock.getTime64() < timeout);
 

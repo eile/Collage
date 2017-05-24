@@ -1,6 +1,6 @@
 
-/* Copyright (c) 2005-2014, Stefan Eilemann <eile@equalizergraphics.com>
- *                    2010, Daniel Nachbaur <danielnachbaur@gmail.com>
+/* Copyright (c) 2005-2017, Stefan Eilemann <eile@equalizergraphics.com>
+ *                          Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -27,7 +27,8 @@
 #include <co/exception.h>
 #include <lunchbox/log.h>
 #include <lunchbox/os.h>
-#include <lunchbox/sleep.h>
+
+#include <extra/sleep.h>
 
 #include <limits>
 #include <sstream>
@@ -177,7 +178,7 @@ bool SocketConnection::connect()
         case EINTR: // Happens sometimes, but looks harmless
             LBDEBUG << "connect: " << lunchbox::sysError << ", retrying"
                     << std::endl;
-            lunchbox::sleep(5 /*ms*/);
+            extra::sleep(5 /*ms*/);
             break;
 
         default:
@@ -517,7 +518,7 @@ int64_t SocketConnection::readSync(void* buffer, const uint64_t bytes,
 
             LBWARN << "WSAGetOverlappedResult error loop" << std::endl;
             // one millisecond to recover
-            lunchbox::sleep(1);
+            extra::sleep(1);
             break;
 
         default:

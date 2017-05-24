@@ -28,7 +28,8 @@
 
 #include <lunchbox/rng.h>
 #include <lunchbox/scopedMutex.h>
-#include <lunchbox/sleep.h>
+
+#include <extra/sleep.h>
 
 #include <boost/bind.hpp>
 
@@ -67,7 +68,7 @@ lunchbox::a_int32_t nNAcksRead;
 lunchbox::a_int32_t nNAcksResend;
 
 float writeWaitTime = 0.f;
-lunchbox::Clock instrumentClock;
+extra::Clock instrumentClock;
 #endif
 
 static uint16_t _numBuffers = 0;
@@ -137,7 +138,7 @@ void RSPConnection::close()
         _parent->close();
 
     while (!_parent && _isWriting())
-        lunchbox::sleep(10 /*ms*/);
+        extra::sleep(10 /*ms*/);
 
     if (isClosed())
         return;
@@ -721,7 +722,7 @@ void RSPConnection::_writeData()
 void RSPConnection::_waitWritable(const uint64_t bytes)
 {
 #ifdef CO_INSTRUMENT_RSP
-    lunchbox::Clock clock;
+    extra::Clock clock;
 #endif
 
     _bucketSize += static_cast<uint64_t>(_clock.resetTimef() * _sendRate);

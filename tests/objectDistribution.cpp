@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2011-2016, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2011-2017, Stefan Eilemann <eile@eyescale.ch>
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -25,9 +25,9 @@
 #include <co/init.h>
 #include <co/node.h>
 #include <co/object.h>
-#include <lunchbox/clock.h>
 #include <lunchbox/monitor.h>
 
+#include <extra/Clock.h>
 #include <iostream>
 
 using co::uint128_t;
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
     co::Nodes nodes;
     nodes.push_back(serverProxy);
 
-    lunchbox::Clock clock;
+    extra::Clock clock;
     for (uint64_t i = co::Object::NONE + 1; i <= co::Object::UNBUFFERED; ++i)
     {
         const co::Object::ChangeType type = co::Object::ChangeType(i);

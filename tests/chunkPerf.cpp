@@ -24,7 +24,7 @@
 #include <co/connectionDescription.h>
 #include <co/init.h>
 #include <co/version.h>
-#include <lunchbox/clock.h>
+#include <extra/Clock.h>
 
 #pragma warning(disable : 4275)
 #include <boost/program_options/options_description.hpp>
@@ -97,7 +97,7 @@ public:
         input.resize(maxBufferSize);
         input.setZero();
 
-        lunchbox::Clock clock;
+        extra::Clock clock;
 
         for (size_t size = minChunkSize; size <= maxBufferSize;
              size = size << 1)

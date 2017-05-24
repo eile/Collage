@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 
     zeroconf = server->getZeroconf();
     zeroconf.set("co_test_value", "42");
-    lunchbox::sleep(1000 /*ms*/);     // give it time to propagate
+    extra::sleep(1000 /*ms*/);        // give it time to propagate
     zeroconf = client->getZeroconf(); // rediscover, use other peer for a change
 
     const co::Strings& instances = zeroconf.getInstances();

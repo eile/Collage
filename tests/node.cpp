@@ -25,7 +25,7 @@
 #include <co/node.h>
 #include <co/oCommand.h>
 
-#include <lunchbox/clock.h>
+#include <extra/Clock.h>
 #include <lunchbox/monitor.h>
 
 #include <iostream>
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     TEST(client->listen());
     TEST(client->connect(serverProxy));
 
-    lunchbox::Clock clock;
+    extra::Clock clock;
     for (unsigned i = 0; i < NMESSAGES; ++i)
         serverProxy->send(co::CMD_NODE_CUSTOM) << message;
     const float time = clock.getTimef();

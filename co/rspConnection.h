@@ -25,10 +25,10 @@
 #include <co/connection.h>      // base class
 #include <co/eventConnection.h> // member
 
+#include <extra/Clock.h>      // member
+#include <extra/MTQueue.h>    // member
 #include <lunchbox/buffer.h>  // member
-#include <lunchbox/clock.h>   // member
 #include <lunchbox/lfQueue.h> // member
-#include <lunchbox/mtQueue.h> // member
 
 #pragma warning(push)
 #pragma warning(disable : 4267)
@@ -203,7 +203,7 @@ private:
     boost::asio::deadline_timer _timeout;
     boost::asio::deadline_timer _wakeup;
 
-    lunchbox::Clock _clock;
+    extra::Clock _clock;
     uint64_t _maxBucketSize;
     size_t _bucketSize;
     int64_t _sendRate;
@@ -222,7 +222,7 @@ private:
     /** Empty read buffers (connected) or write buffers (listening) */
     lunchbox::LFQueue<Buffer*> _threadBuffers;
     /** Ready data buffers (connected) or empty write buffers (listening) */
-    lunchbox::MTQueue<Buffer*> _appBuffers;
+    extra::MTQueue<Buffer*> _appBuffers;
 
     Buffer _recvBuffer;               //!< Receive (thread) buffer
     std::deque<Buffer*> _recvBuffers; //!< out-of-order buffers

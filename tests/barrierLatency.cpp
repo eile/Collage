@@ -20,8 +20,8 @@
 #include <lunchbox/test.h>
 
 #include <co/co.h>
+#include <extra/MTQueue.h>
 #include <lunchbox/monitor.h>
-#include <lunchbox/mtQueue.h>
 #include <lunchbox/spinLock.h>
 
 const size_t _latency(1);
@@ -40,7 +40,7 @@ enum State
 lunchbox::Monitor<uint32_t> _state;
 co::ObjectVersion _barrierID;
 std::shared_ptr<co::Barrier> _barrier;
-lunchbox::MTQueue<co::uint128_t> _versions;
+extra::MTQueue<co::uint128_t> _versions;
 
 class ServerThread : public lunchbox::Thread
 {

@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2012-2016, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2012-2017, Stefan Eilemann <eile@eyescale.ch>
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -24,10 +24,10 @@
 #include <co/init.h>
 #include <co/node.h>
 #include <co/object.h>
-#include <lunchbox/clock.h>
 #include <lunchbox/monitor.h>
 #include <lunchbox/thread.h>
 
+#include <extra/Clock.h>
 #include <iostream>
 
 using co::uint128_t;
@@ -74,7 +74,7 @@ public:
 
     void run() final
     {
-        lunchbox::sleep(110 /*ms*/);
+        extra::sleep(110 /*ms*/);
         _object.sync(uint128_t(3));
         TESTINFO(_object.getVersion() == 3, _object.getVersion());
     }
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 
         Thread thread(slave);
 
-        lunchbox::Clock clock;
+        extra::Clock clock;
         TEST(thread.start());
         master.commit();
         master.commit(); // should block

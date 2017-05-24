@@ -22,9 +22,10 @@
 
 #include <co/types.h>
 
-#include <lunchbox/mtQueue.h> // member
-#include <lunchbox/pool.h>    // member
-#include <lunchbox/thread.h>  // thread-safety check
+#include <lunchbox/pool.h>   // member
+#include <lunchbox/thread.h> // thread-safety check
+
+#include <extra/MTQueue.h> // member
 
 #include "objectDataIStream.h" // pooled object
 
@@ -58,7 +59,7 @@ protected:
     typedef std::vector<QueuedStream> QueuedStreams;
 
     /** The change queue. */
-    lunchbox::MTQueue<QueuedStream> _queued;
+    extra::MTQueue<QueuedStream> _queued;
 
     /** Cached input streams (+decompressor) */
     lunchbox::Pool<ObjectDataIStream> _iStreamCache;

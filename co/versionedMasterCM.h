@@ -25,9 +25,10 @@
 #include "objectCM.h"         // base class
 #include <co/types.h>
 
-#include <lunchbox/mtQueue.h> // member
-#include <lunchbox/pool.h>    // member
-#include <lunchbox/thread.h>  // thread-safety check
+#include <lunchbox/pool.h>   // member
+#include <lunchbox/thread.h> // thread-safety check
+
+//#include <extra/MTQueue.h> // member
 
 namespace co
 {

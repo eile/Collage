@@ -26,9 +26,10 @@
 #include <co/init.h>
 #include <co/oCommand.h>
 
-#include <lunchbox/clock.h>
 #include <lunchbox/scopedMutex.h>
 #include <lunchbox/spinLock.h>
+
+#include <extra/Clock.h>
 
 // Tests the functionality of the network command buffer cache
 
@@ -64,7 +65,7 @@ public:
 protected:
     virtual void run()
     {
-        lunchbox::Clock clock;
+        extra::Clock clock;
         _running = true;
         while (_running)
         {
@@ -97,7 +98,7 @@ int main(int argc, char** argv)
         const uint64_t allocSize = co::COMMAND_ALLOCSIZE;
         size_t nOps = 0;
 
-        lunchbox::Clock clock;
+        extra::Clock clock;
         while (clock.getTime64() < RUNTIME)
         {
             co::BufferPtr buffer = cache.alloc(allocSize);

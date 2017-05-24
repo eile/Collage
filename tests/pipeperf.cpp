@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2008-2015, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2008-2017, Stefan Eilemann <eile@equalizergraphics.com>
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -22,10 +22,10 @@
 #include <co/buffer.h>
 #include <co/connectionSet.h>
 #include <co/init.h>
-#include <lunchbox/clock.h>
 #include <lunchbox/monitor.h>
 #include <lunchbox/test.h>
 
+#include <extra/Clock.h>
 #include <iostream>
 
 #include <co/pipeConnection.h> // private header
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 
     co::Buffer buffer;
     co::BufferPtr syncBuffer;
-    lunchbox::Clock clock;
+    extra::Clock clock;
 
     unsigned stage = 2;
     for (uint64_t packetSize = MAXPACKETSIZE; packetSize > 0;

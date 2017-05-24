@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2010-2015, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2010-2017, Stefan Eilemann <eile@equalizergraphics.com>
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -23,9 +23,10 @@
 #include <co/init.h>
 #include <lunchbox/test.h>
 
-#include <iostream>
-#include <lunchbox/clock.h>
 #include <lunchbox/monitor.h>
+
+#include <extra/Clock.h>
+#include <iostream>
 
 #define PACKETSIZE (123456)
 #define RUNTIME (1000) // ms
@@ -203,7 +204,7 @@ int main(int argc, char** argv)
 
         uint64_t out[PACKETSIZE / 8];
 
-        lunchbox::Clock clock;
+        extra::Clock clock;
         uint64_t sequence = 0;
 
         while (clock.getTime64() < RUNTIME)

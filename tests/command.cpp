@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2013-2015, Stefan.Eilemann@epfl.ch
+/* Copyright (c) 2013-2017, Stefan.Eilemann@epfl.ch
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -16,7 +16,7 @@
  */
 
 #include <co/co.h>
-#include <lunchbox/clock.h>
+#include <extra/Clock.h>
 #include <lunchbox/test.h>
 
 #define NCOMMANDS 10000
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     TEST(client->listen());
     TEST(client->connect(serverProxy));
 
-    lunchbox::Clock clock;
+    extra::Clock clock;
     for (size_t i = 0; i < NCOMMANDS; ++i)
         serverProxy->send(CMD_ASYNC);
     uint32_t request = client->registerRequest();

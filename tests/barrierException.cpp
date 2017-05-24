@@ -137,7 +137,7 @@ protected:
     {
         for (uint32_t i = 0; i < _nOps; ++i)
         {
-            lunchbox::sleep(_timeToSleep);
+            extra::sleep(_timeToSleep);
 
             const uint32_t timeout =
                 co::Global::getIAttribute(co::Global::IATTR_TIMEOUT_DEFAULT);

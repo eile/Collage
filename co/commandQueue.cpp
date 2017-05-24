@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2005-2013, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2005-2017, Stefan Eilemann <eile@equalizergraphics.com>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -24,7 +24,7 @@
 #include "log.h"
 #include "node.h"
 
-#include <lunchbox/mtQueue.h>
+#include <extra/MTQueue.h>
 
 namespace co
 {
@@ -39,7 +39,7 @@ public:
     }
 
     /** Thread-safe buffer queue. */
-    lunchbox::MTQueue<co::ICommand> commands;
+    extra::MTQueue<co::ICommand> commands;
 };
 }
 

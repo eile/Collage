@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2011-2016, Stefan Eilemann <eile@eyescale.ch>
+/* Copyright (c) 2011-2017, Stefan Eilemann <eile@eyescale.ch>
  *                          Carsten Rohn <carsten.rohn@rtt.ag>
  *                          Daniel Nachbaur <danielnachbaur@gmail.com>
  *
@@ -28,7 +28,8 @@
 #include "queueItem.h"
 
 #include <lunchbox/buffer.h>
-#include <lunchbox/mtQueue.h>
+
+#include <extra/MTQueue.h>
 
 namespace co
 {
@@ -89,7 +90,7 @@ public:
         return true;
     }
 
-    typedef lunchbox::MTQueue<ItemBufferPtr> ItemQueue;
+    typedef extra::MTQueue<ItemBufferPtr> ItemQueue;
 
     ItemQueue queue;
 

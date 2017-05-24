@@ -25,9 +25,10 @@
 #include "objectDataIStream.h"      // member
 #include "objectSlaveDataOStream.h" // member
 
-#include <lunchbox/mtQueue.h> // member
-#include <lunchbox/pool.h>    // member
-#include <lunchbox/thread.h>  // thread-safety macro
+#include <lunchbox/pool.h>   // member
+#include <lunchbox/thread.h> // thread-safety macro
+
+#include <extra/MTQueue.h> // member
 
 namespace co
 {
@@ -74,7 +75,7 @@ private:
     ObjectDataIStream* _currentIStream;
 
     /** The change queue. */
-    lunchbox::MTQueue<ObjectDataIStream*> _queuedVersions;
+    extra::MTQueue<ObjectDataIStream*> _queuedVersions;
 
     /** Cached input streams (+decompressor) */
     lunchbox::Pool<ObjectDataIStream> _iStreamCache;

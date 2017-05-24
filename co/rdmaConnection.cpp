@@ -507,7 +507,7 @@ void RDMAConnection::readNB(void *, const uint64_t)
 int64_t RDMAConnection::readSync(void *buffer, const uint64_t bytes,
                                  const bool block)
 {
-    lunchbox::Clock clock;
+    extra::Clock clock;
     const int64_t start = clock.getTime64();
     const uint32_t timeout = Global::getTimeout();
     eventset events;
@@ -646,7 +646,7 @@ err:
 
 int64_t RDMAConnection::write(const void *buffer, const uint64_t bytes)
 {
-    lunchbox::Clock clock;
+    extra::Clock clock;
     const int64_t start = clock.getTime64();
     const uint32_t timeout = Global::getTimeout();
     eventset events;
@@ -1747,7 +1747,7 @@ bool RDMAConnection::_postSetup()
 
 bool RDMAConnection::_waitRecvSetup()
 {
-    lunchbox::Clock clock;
+    extra::Clock clock;
     const int64_t start = clock.getTime64();
     const uint32_t timeout = Global::getTimeout();
     eventset events;
@@ -1970,7 +1970,7 @@ uint64_t RDMAConnection::_getAvailableBytes()
 
 bool RDMAConnection::_waitForCMEvent(enum rdma_cm_event_type expected)
 {
-    lunchbox::Clock clock;
+    extra::Clock clock;
     const int64_t start = clock.getTime64();
     const uint32_t timeout = Global::getTimeout();
     bool done = false;

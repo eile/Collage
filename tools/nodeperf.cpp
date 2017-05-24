@@ -18,11 +18,11 @@
 // Tests network throughput between co::Nodes
 // Usage: see 'coNodeperf -h'
 
-#include <boost/foreach.hpp>
 #include <co/co.h>
-#include <lunchbox/clock.h>
+
+#include <extra/Clock.h>
+#include <extra/sleep.h>
 #include <lunchbox/scopedMutex.h>
-#include <lunchbox/sleep.h>
 #include <lunchbox/spinLock.h>
 #pragma warning(disable : 4275)
 #include <boost/program_options.hpp>
@@ -252,11 +252,9 @@ int main(int argc, char** argv)
     {
         co::Zeroconf zeroconf = localNode->getZeroconf();
         const co::Strings& instances = localNode->getZeroconf().getInstances();
-        BOOST_FOREACH (const std::string& instance, instances)
-        {
+        for (const std::string& instance : instances)
             if (!zeroconf.get(instance, "coNodeperf").empty())
                 localNode->connect(co::NodeID(instance));
-        }
     }
     {
         lunchbox::ScopedFastRead _mutex(nodes_);
@@ -282,7 +280,7 @@ int main(int argc, char** argv)
         buffer[i] = i;
 
     const float mBytesSec = buffer.getNumBytes() / 1024.0f / 1024.0f * 1000.0f;
-    lunchbox::Clock clock;
+    extra::Clock clock;
     size_t sentPackets = 0;
 
     clock.reset();
@@ -339,7 +337,7 @@ int main(int argc, char** argv)
             ++sentPackets;
 
             if (waitTime > 0)
-                lunchbox::sleep(waitTime);
+                extra::sleep(waitTime);
         }
 
         const float time = clock.getTimef();

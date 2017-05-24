@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2009-2015, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2009-2017, Stefan Eilemann <eile@equalizergraphics.com>
  *                          Daniel Nachbaur <danielnachbaur@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it under
@@ -40,7 +40,7 @@
 #define RUNTIME 5000
 #define COMMAND_SIZE 4096
 
-lunchbox::Clock _clock;
+extra::Clock _clock;
 
 class Reader : public lunchbox::Thread
 {

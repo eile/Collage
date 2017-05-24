@@ -21,9 +21,9 @@
 #include <boost/foreach.hpp>
 #include <co/co.h>
 #include <co/connections.h>
-#include <lunchbox/clock.h>
+#include <extra/Clock.h>
+#include <extra/MTQueue.h>
 #include <lunchbox/monitor.h>
-#include <lunchbox/mtQueue.h>
 #pragma warning(disable : 4275)
 #include <boost/program_options.hpp>
 #pragma warning(default : 4275)
@@ -286,14 +286,14 @@ public:
 private:
     size_t active_;
     Operations impls_;
-    lunchbox::Clock clock_;
+    extra::Clock clock_;
     lunchbox::Monitorb state_;
 };
 
 typedef lunchbox::RefPtr<Node> NodePtr;
 typedef std::vector<NodePtr> Nodes;
 typedef Nodes::iterator NodesIter;
-typedef lunchbox::MTQueue<NodePtr> NodeQueue;
+typedef extra::MTQueue<NodePtr> NodeQueue;
 NodeQueue nodeQ_;
 
 class LocalNode : public co::LocalNode
@@ -359,7 +359,7 @@ private:
     Object* root_;
     size_t active_;
     Operations impls_;
-    lunchbox::Clock clock_;
+    extra::Clock clock_;
     bool canChange_;
 
     virtual ~LocalNode()
@@ -584,7 +584,7 @@ int main(int argc, char** argv)
             master = node;
     LBINFO << nodes.size() << " peers" << std::endl;
 
-    lunchbox::Clock clock;
+    extra::Clock clock;
     while (!nodes.empty())
     {
         localNode->process();
